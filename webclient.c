@@ -25,7 +25,7 @@
 
 #include <rtdbg.h>
 
-#define WEBCLIENT_SOCKET_TIMEO	6000 /* 6 second */
+#define WEBCLIENT_SOCKET_TIMEO  6000 /* 6 second */
 
 extern long int strtol(const char *nptr, char **endptr, int base);
 
@@ -182,7 +182,7 @@ static int webclient_resolve_address(struct webclient_session* session, struct s
 
     if((host_addr_len < 1) || (host_addr_len > url_len) )
     {
-		//rt_kprintf("webclient_resolve_address host_addr_len: %d error!\n", host_addr_len);
+        //rt_kprintf("webclient_resolve_address host_addr_len: %d error!\n", host_addr_len);
         rc = -1;
         goto _exit;
     }
@@ -345,7 +345,7 @@ __exit:
 int webclient_handle_response(struct webclient_session* session)
 {
     int rc;
-	int content_length = -1;
+    int content_length = -1;
     char *mimeBuffer, *mime_ptr;
 
     if (!session) return -1;
@@ -435,8 +435,8 @@ int webclient_handle_response(struct webclient_session* session)
     }
 
     /* use the content length in content range */
-	if (content_length != -1)
-		session->content_length = content_length;
+    if (content_length != -1)
+        session->content_length = content_length;
 
     session->content_length_remainder =
             (session->content_length) ? session->content_length : 0xFFFFFFFF;
@@ -771,16 +771,16 @@ int webclient_read(struct webclient_session* session, unsigned char *buffer,
         bytesRead = recv(session->socket, buffer + totalRead, left, 0);
         if (bytesRead <= 0)
         {
-        	rt_kprintf("errno=%d\n", bytesRead);
+            rt_kprintf("errno=%d\n", bytesRead);
 
             if (totalRead)
             {
-            	rt_kprintf("totalRead=%d\n", totalRead);
+                rt_kprintf("totalRead=%d\n", totalRead);
                 break;
             }
             else
             {
-				rt_kprintf("EWOULDBLOCK=%d, EAGAIN=%d\n", EWOULDBLOCK, EAGAIN);
+                rt_kprintf("EWOULDBLOCK=%d, EAGAIN=%d\n", EWOULDBLOCK, EAGAIN);
 
                 if (errno == EWOULDBLOCK || errno == EAGAIN)
                 {
@@ -978,7 +978,7 @@ struct webclient_session* webclient_open_custom(const char* URI, int method,
     if (data)
     {
         length = webclient_write(session, (unsigned char*) data, data_sz);
-        if (length != length)
+        if (length != data_sz)
         {
             rt_kprintf("POST data %d:%d\n", length, data_sz);
             goto _err_exit;
@@ -1029,7 +1029,7 @@ int webclient_transfer(const char* URI, const char* header, size_t header_sz,
 
     /* POST data */
     length = webclient_write(session, (unsigned char*) data, data_sz);
-    if (length != length)
+    if (length != data_sz)
     {
         rt_kprintf("POST data %d:%d\n", length, data_sz);
         goto __exit;
