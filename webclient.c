@@ -435,8 +435,8 @@ int webclient_handle_response(struct webclient_session* session)
     }
 
     /* use the content length in content range */
-    if (content_length != -1)
-        session->content_length = content_length;
+    //if (content_length != -1)
+    //    session->content_length = content_length;
 
     session->content_length_remainder =
             (session->content_length) ? session->content_length : 0xFFFFFFFF;
