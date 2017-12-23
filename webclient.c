@@ -13,8 +13,8 @@
 
 #include <string.h>
 
-#include <lwip/netdb.h>
-#include <lwip/sockets.h>
+#include <netdb.h>
+#include <sys/socket.h>
 
 #include "webclient_internal.h"
 
@@ -41,7 +41,7 @@ char *webclient_strdup(const char *s)
     return tmp;
 }
 
-static char* webclient_header_skip_prefix(char* line, const char* prefix)
+static char *webclient_header_skip_prefix(char *line, const char *prefix)
 {
     char *ptr;
     size_t len = strlen(prefix);
@@ -71,7 +71,7 @@ static char* webclient_header_skip_prefix(char* line, const char* prefix)
  * before the data.  We need to read exactly to the end of the headers
  * and no more data.  This readline reads a single char at a time.
  */
-static int webclient_read_line(int socket, char * buffer, int size)
+static int webclient_read_line(int socket, char *buffer, int size)
 {
     int rc;
     char *ptr = buffer;
@@ -113,8 +113,8 @@ static int webclient_read_line(int socket, char * buffer, int size)
  *
  * @return 0 on resolve server address OK, others failed
  */
-static int webclient_resolve_address(struct webclient_session* session, struct sockaddr_in *server,
-        const char *url, char** request)
+static int webclient_resolve_address(struct webclient_session *session, struct sockaddr_in *server,
+                                     const char *url, char **request)
 {
     int rc = WEBCLIENT_OK;
     char *ptr;
@@ -170,7 +170,7 @@ static int webclient_resolve_address(struct webclient_session* session, struct s
         if ((*url < '0' || *url > '9') && *url != '.')
             is_domain = 1;
 
-        if(host_addr == 0)
+        if (host_addr == 0)
         {
             host_addr = url;
             //rt_kprintf("webclient_resolve_address host_addr start: %s\n", host_addr);
@@ -178,9 +178,9 @@ static int webclient_resolve_address(struct webclient_session* session, struct s
 
         url++;
     }
-    *request = (char*) url;
+    *request = (char *) url;
 
-    if((host_addr_len < 1) || (host_addr_len > url_len) )
+    if ((host_addr_len < 1) || (host_addr_len > url_len))
     {
         //rt_kprintf("webclient_resolve_address host_addr_len: %d error!\n", host_addr_len);
         rc = -1;
@@ -189,9 +189,9 @@ static int webclient_resolve_address(struct webclient_session* session, struct s
 
     /* get host addr ok. */
     {
-        char *host_addr_new = web_malloc(host_addr_len+1);
+        char *host_addr_new = web_malloc(host_addr_len + 1);
 
-        if(!host_addr_new)
+        if (!host_addr_new)
         {
             rc = -1;
             goto _exit;
@@ -217,16 +217,16 @@ static int webclient_resolve_address(struct webclient_session* session, struct s
     }
     else
     {
-        inet_aton(session->host, (struct in_addr* )&(server->sin_addr));
+        inet_aton(session->host, (struct in_addr *) & (server->sin_addr));
     }
     /* set the port */
     server->sin_port = htons((int) strtol(port, NULL, 10));
     server->sin_family = AF_INET;
 
 _exit:
-    if(rc != WEBCLIENT_OK)
+    if (rc != WEBCLIENT_OK)
     {
-        if(session->host)
+        if (session->host)
         {
             web_free(session->host);
             session->host = 0;
@@ -236,15 +236,15 @@ _exit:
     return rc;
 }
 
-int webclient_send_header(struct webclient_session* session, int method,
-        const char *header, size_t header_sz)
+int webclient_send_header(struct webclient_session *session, int method,
+                          const char *header, size_t header_sz)
 {
     int rc = WEBCLIENT_OK;
     unsigned char *header_buffer = RT_NULL, *header_ptr;
 
     if (header == RT_NULL)
     {
-        header_buffer = web_malloc (WEBCLIENT_HEADER_BUFSZ);
+        header_buffer = web_malloc(WEBCLIENT_HEADER_BUFSZ);
         if (header_buffer == RT_NULL)
         {
             rc = -WEBCLIENT_NOMEM;
@@ -252,16 +252,16 @@ int webclient_send_header(struct webclient_session* session, int method,
         }
 
         header_ptr = header_buffer;
-        header_ptr += rt_snprintf((char*) header_ptr,
-                WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                "GET %s HTTP/1.1\r\n",
-                session->request ? session->request : "/");
-        header_ptr += rt_snprintf((char*) header_ptr,
-                WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                "Host: %s\r\n", session->host);
-        header_ptr += rt_snprintf((char*) header_ptr,
-                WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                "User-Agent: RT-Thread HTTP Agent\r\n\r\n");
+        header_ptr += rt_snprintf((char *) header_ptr,
+                                  WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                  "GET %s HTTP/1.1\r\n",
+                                  session->request ? session->request : "/");
+        header_ptr += rt_snprintf((char *) header_ptr,
+                                  WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                  "Host: %s\r\n", session->host);
+        header_ptr += rt_snprintf((char *) header_ptr,
+                                  WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                  "User-Agent: RT-Thread HTTP Agent\r\n\r\n");
 
         webclient_write(session, header_buffer, header_ptr - header_buffer);
     }
@@ -269,7 +269,7 @@ int webclient_send_header(struct webclient_session* session, int method,
     {
         if (method != WEBCLIENT_USER_METHOD)
         {
-            header_buffer = web_malloc (WEBCLIENT_HEADER_BUFSZ);
+            header_buffer = web_malloc(WEBCLIENT_HEADER_BUFSZ);
             if (header_buffer == RT_NULL)
             {
                 rc = -WEBCLIENT_NOMEM;
@@ -281,38 +281,38 @@ int webclient_send_header(struct webclient_session* session, int method,
             if (strstr(header, "HTTP/1.") == RT_NULL)
             {
                 if (method == WEBCLIENT_GET)
-                    header_ptr += rt_snprintf((char*) header_ptr,
-                            WEBCLIENT_HEADER_BUFSZ
-                                    - (header_ptr - header_buffer),
-                            "GET %s HTTP/1.1\r\n",
-                            session->request ? session->request : "/");
+                    header_ptr += rt_snprintf((char *) header_ptr,
+                                              WEBCLIENT_HEADER_BUFSZ
+                                              - (header_ptr - header_buffer),
+                                              "GET %s HTTP/1.1\r\n",
+                                              session->request ? session->request : "/");
                 else if (method == WEBCLIENT_POST)
-                    header_ptr += rt_snprintf((char*) header_ptr,
-                            WEBCLIENT_HEADER_BUFSZ
-                                    - (header_ptr - header_buffer),
-                            "POST %s HTTP/1.1\r\n",
-                            session->request ? session->request : "/");
+                    header_ptr += rt_snprintf((char *) header_ptr,
+                                              WEBCLIENT_HEADER_BUFSZ
+                                              - (header_ptr - header_buffer),
+                                              "POST %s HTTP/1.1\r\n",
+                                              session->request ? session->request : "/");
             }
 
             if (strstr(header, "Host:") == RT_NULL)
             {
-                header_ptr += rt_snprintf((char*) header_ptr,
-                        WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                        "Host: %s\r\n", session->host);
+                header_ptr += rt_snprintf((char *) header_ptr,
+                                          WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                          "Host: %s\r\n", session->host);
             }
 
             if (strstr(header, "User-Agent:") == RT_NULL)
             {
-                header_ptr += rt_snprintf((char*) header_ptr,
-                        WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                        "User-Agent: RT-Thread HTTP Agent\r\n");
+                header_ptr += rt_snprintf((char *) header_ptr,
+                                          WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                          "User-Agent: RT-Thread HTTP Agent\r\n");
             }
 
             if (strstr(header, "Accept: ") == RT_NULL)
             {
-                header_ptr += rt_snprintf((char*) header_ptr,
-                        WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                        "Accept: */*\r\n");
+                header_ptr += rt_snprintf((char *) header_ptr,
+                                          WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                          "Accept: */*\r\n");
             }
 
             if ((WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer))
@@ -325,15 +325,15 @@ int webclient_send_header(struct webclient_session* session, int method,
             /* append user's header */
             memcpy(header_ptr, header, header_sz);
             header_ptr += header_sz;
-            header_ptr += rt_snprintf((char*) header_ptr,
-                    WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
-                    "\r\n");
+            header_ptr += rt_snprintf((char *) header_ptr,
+                                      WEBCLIENT_HEADER_BUFSZ - (header_ptr - header_buffer),
+                                      "\r\n");
 
             webclient_write(session, header_buffer, header_ptr - header_buffer);
         }
         else
         {
-            webclient_write(session, (unsigned char*) header, header_sz);
+            webclient_write(session, (unsigned char *) header, header_sz);
         }
     }
 
@@ -342,7 +342,7 @@ __exit:
     return rc;
 }
 
-int webclient_handle_response(struct webclient_session* session)
+int webclient_handle_response(struct webclient_session *session)
 {
     int rc;
     int content_length = -1;
@@ -353,7 +353,7 @@ int webclient_handle_response(struct webclient_session* session)
     /* set content length of session */
     session->content_length = -1;
 
-    mimeBuffer = (char*)web_malloc(WEBCLIENT_RESPONSE_BUFSZ + 1);
+    mimeBuffer = (char *)web_malloc(WEBCLIENT_RESPONSE_BUFSZ + 1);
     if (!mimeBuffer)
         return -1;
 
@@ -395,7 +395,7 @@ int webclient_handle_response(struct webclient_session* session)
             session->last_modified = webclient_strdup(mime_ptr);
         }
         mime_ptr = webclient_header_skip_prefix(mimeBuffer,
-                "Transfer-Encoding: ");
+                                                "Transfer-Encoding: ");
         if (mime_ptr != RT_NULL)
         {
             session->transfer_encoding = webclient_strdup(mime_ptr);
@@ -439,7 +439,7 @@ int webclient_handle_response(struct webclient_session* session)
     //    session->content_length = content_length;
 
     session->content_length_remainder =
-            (session->content_length) ? session->content_length : 0xFFFFFFFF;
+        (session->content_length) ? session->content_length : 0xFFFFFFFF;
 
     if (session->transfer_encoding
             && strcmp(session->transfer_encoding, "chunked") == 0)
@@ -464,7 +464,7 @@ int webclient_handle_response(struct webclient_session* session)
  and handles the protocol and reads the return headers.  Needs
  to leave the stream at the start of the real data.
  */
-int webclient_connect(struct webclient_session* session, const char *URI)
+int webclient_connect(struct webclient_session *session, const char *URI)
 {
     int rc;
     int socket_handle;
@@ -493,13 +493,13 @@ int webclient_connect(struct webclient_session* session, const char *URI)
         return -WEBCLIENT_NOSOCKET;
 
     /* set recv timeout option */
-    setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void*) &timeout,
-            sizeof(timeout));
-    setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void*) &timeout,
-            sizeof(timeout));
+    setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void *) &timeout,
+               sizeof(timeout));
+    setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void *) &timeout,
+               sizeof(timeout));
 
     if (connect(socket_handle, (struct sockaddr *) &server,
-            sizeof(struct sockaddr)) != 0)
+                sizeof(struct sockaddr)) != 0)
     {
         /* connect failed, close socket handle */
         closesocket(socket_handle);
@@ -510,12 +510,12 @@ int webclient_connect(struct webclient_session* session, const char *URI)
     return WEBCLIENT_OK;
 }
 
-struct webclient_session* webclient_open(const char* URI)
+struct webclient_session *webclient_open(const char *URI)
 {
-    struct webclient_session* session;
+    struct webclient_session *session;
 
     /* create session */
-    session = (struct webclient_session*) web_malloc(sizeof(struct webclient_session));
+    session = (struct webclient_session *) web_malloc(sizeof(struct webclient_session));
     if (session == RT_NULL)
         return RT_NULL;
     memset(session, 0x0, sizeof(struct webclient_session));
@@ -557,13 +557,13 @@ struct webclient_session* webclient_open(const char* URI)
     return session;
 }
 
-struct webclient_session* webclient_open_position(const char* URI, int position)
+struct webclient_session *webclient_open_position(const char *URI, int position)
 {
-    struct webclient_session* session;
+    struct webclient_session *session;
     char *range_header;
 
     /* create session */
-    session = (struct webclient_session*) web_malloc(sizeof(struct webclient_session));
+    session = (struct webclient_session *) web_malloc(sizeof(struct webclient_session));
     if (session == RT_NULL)
         return RT_NULL;
     memset(session, 0x0, sizeof(struct webclient_session));
@@ -575,14 +575,14 @@ struct webclient_session* webclient_open_position(const char* URI, int position)
         return RT_NULL;
     }
 
-    range_header = (char*)web_malloc (WEBCLIENT_HEADER_BUFSZ);
+    range_header = (char *)web_malloc(WEBCLIENT_HEADER_BUFSZ);
     rt_snprintf(range_header, WEBCLIENT_HEADER_BUFSZ - 1,
-            "Range: bytes=%d-\r\n", position);
+                "Range: bytes=%d-\r\n", position);
     if (!range_header)
         goto __exit;
 
     if (webclient_send_header(session, WEBCLIENT_GET, range_header,
-            rt_strlen(range_header)) != WEBCLIENT_OK)
+                              rt_strlen(range_header)) != WEBCLIENT_OK)
     {
         /* connect to webclient server failed. */
         webclient_close(session);
@@ -617,13 +617,13 @@ __exit:
     return RT_NULL;
 }
 
-struct webclient_session* webclient_open_header(const char* URI, int method,
-        const char* header, size_t header_sz)
+struct webclient_session *webclient_open_header(const char *URI, int method,
+        const char *header, size_t header_sz)
 {
-    struct webclient_session* session;
+    struct webclient_session *session;
 
     /* create session */
-    session = (struct webclient_session*) web_malloc(sizeof(struct webclient_session));
+    session = (struct webclient_session *) web_malloc(sizeof(struct webclient_session));
     if (session == RT_NULL)
         return RT_NULL;
     memset(session, 0, sizeof(struct webclient_session));
@@ -654,20 +654,20 @@ struct webclient_session* webclient_open_header(const char* URI, int method,
     return session;
 }
 
-int webclient_set_timeout(struct webclient_session* session, int millisecond)
+int webclient_set_timeout(struct webclient_session *session, int millisecond)
 {
     RT_ASSERT(session != RT_NULL);
 
     /* set recv timeout option */
     setsockopt(session->socket, SOL_SOCKET, SO_RCVTIMEO,
-            (void*) &millisecond, sizeof(millisecond));
+               (void *) &millisecond, sizeof(millisecond));
     setsockopt(session->socket, SOL_SOCKET, SO_SNDTIMEO,
-            (void*) &millisecond, sizeof(millisecond));
+               (void *) &millisecond, sizeof(millisecond));
 
     return 0;
 }
 
-static int webclient_next_chunk(struct webclient_session* session)
+static int webclient_next_chunk(struct webclient_session *session)
 {
     char line[64];
     int length;
@@ -707,8 +707,8 @@ static int webclient_next_chunk(struct webclient_session* session)
     return session->chunk_sz;
 }
 
-int webclient_read(struct webclient_session* session, unsigned char *buffer,
-        size_t length)
+int webclient_read(struct webclient_session *session, unsigned char *buffer,
+                   size_t length)
 {
     int bytesRead = 0;
     int totalRead = 0;
@@ -748,14 +748,14 @@ int webclient_read(struct webclient_session* session, unsigned char *buffer,
         return bytesRead;
     }
 
-    if(session->content_length > 0)
+    if (session->content_length > 0)
     {
-        if(length > session->content_length_remainder)
+        if (length > session->content_length_remainder)
         {
             length = session->content_length_remainder;
         }
 
-        if(length == 0)
+        if (length == 0)
         {
             return 0;
         }
@@ -798,9 +798,10 @@ int webclient_read(struct webclient_session* session, unsigned char *buffer,
 
         left -= bytesRead;
         totalRead += bytesRead;
-    } while (left);
+    }
+    while (left);
 
-    if(session->content_length > 0)
+    if (session->content_length > 0)
     {
         session->content_length_remainder -= totalRead;
     }
@@ -808,8 +809,8 @@ int webclient_read(struct webclient_session* session, unsigned char *buffer,
     return totalRead;
 }
 
-int webclient_write(struct webclient_session* session,
-        const unsigned char *buffer, size_t length)
+int webclient_write(struct webclient_session *session,
+                    const unsigned char *buffer, size_t length)
 {
     int bytesWrite = 0;
     int totalWrite = 0;
@@ -849,7 +850,8 @@ int webclient_write(struct webclient_session* session,
 
         left -= bytesWrite;
         totalWrite += bytesWrite;
-    } while (left);
+    }
+    while (left);
 
     return totalWrite;
 }
@@ -857,7 +859,7 @@ int webclient_write(struct webclient_session* session,
 /*
  * close a webclient client session.
  */
-int webclient_close(struct webclient_session* session)
+int webclient_close(struct webclient_session *session)
 {
     RT_ASSERT(session != RT_NULL);
 
@@ -873,10 +875,10 @@ int webclient_close(struct webclient_session* session)
     return 0;
 }
 
-int webclient_response(struct webclient_session* session, void **response)
+int webclient_response(struct webclient_session *session, void **response)
 {
-    unsigned char* buf_ptr;
-    unsigned char* response_buf = 0;
+    unsigned char *buf_ptr;
+    unsigned char *response_buf = 0;
     int length, total_read = 0;
 
     if (!session || !response) return -1;
@@ -889,18 +891,18 @@ int webclient_response(struct webclient_session* session, void **response)
         total_read = 0;
         while (1)
         {
-            unsigned char* new_resp;
+            unsigned char *new_resp;
 
             result_sz = total_read + WEBCLIENT_RESPONSE_BUFSZ;
             new_resp = web_realloc(response_buf, result_sz + 1);
-            if(!new_resp)
+            if (!new_resp)
             {
                 rt_kprintf("no memory for realloc new_resp\n");
                 break;
             }
 
             response_buf = new_resp;
-            buf_ptr = (unsigned char*) response_buf + total_read;
+            buf_ptr = (unsigned char *) response_buf + total_read;
 
             /* read result */
             length = webclient_read(session, buf_ptr, result_sz - total_read);
@@ -916,9 +918,9 @@ int webclient_response(struct webclient_session* session, void **response)
 
         result_sz = session->content_length;
         response_buf = web_malloc(result_sz + 1);
-        if(!response_buf) return 0;
+        if (!response_buf) return 0;
 
-        buf_ptr = (unsigned char*) response_buf;
+        buf_ptr = (unsigned char *) response_buf;
         for (total_read = 0; total_read < result_sz;)
         {
             length = webclient_read(session, buf_ptr, result_sz - total_read);
@@ -949,15 +951,15 @@ int webclient_response(struct webclient_session* session, void **response)
 /*
  * High level APIs for webclient client
  */
-struct webclient_session* webclient_open_custom(const char* URI, int method,
-        const char* header, size_t header_sz, const char* data, size_t data_sz)
+struct webclient_session *webclient_open_custom(const char *URI, int method,
+        const char *header, size_t header_sz, const char *data, size_t data_sz)
 {
     int rc = 0;
     size_t length;
-    struct webclient_session* session = RT_NULL;
+    struct webclient_session *session = RT_NULL;
 
     /* create session */
-    session = (struct webclient_session*) web_malloc(sizeof(struct webclient_session));
+    session = (struct webclient_session *) web_malloc(sizeof(struct webclient_session));
     if (!session)
     {
         rc = -WEBCLIENT_NOMEM;
@@ -977,7 +979,7 @@ struct webclient_session* webclient_open_custom(const char* URI, int method,
     /* POST data */
     if (data)
     {
-        length = webclient_write(session, (unsigned char*) data, data_sz);
+        length = webclient_write(session, (unsigned char *) data, data_sz);
         if (length != data_sz)
         {
             rt_kprintf("POST data %d:%d\n", length, data_sz);
@@ -991,7 +993,7 @@ struct webclient_session* webclient_open_custom(const char* URI, int method,
     goto _success;
 
 _err_exit:
-    if(session)
+    if (session)
     {
         webclient_close(session);
         session = 0;
@@ -1001,16 +1003,16 @@ _success:
     return session;
 }
 
-int webclient_transfer(const char* URI, const char* header, size_t header_sz,
-        const char* data, size_t data_sz, char *result, size_t result_sz)
+int webclient_transfer(const char *URI, const char *header, size_t header_sz,
+                       const char *data, size_t data_sz, char *result, size_t result_sz)
 {
     int rc = 0;
     int length, total_read = 0;
-    unsigned char* buf_ptr;
-    struct webclient_session* session = RT_NULL;
+    unsigned char *buf_ptr;
+    struct webclient_session *session = RT_NULL;
 
     /* create session */
-    session = (struct webclient_session*) web_malloc(sizeof(struct webclient_session));
+    session = (struct webclient_session *) web_malloc(sizeof(struct webclient_session));
     if (!session)
     {
         rc = -WEBCLIENT_NOMEM;
@@ -1028,7 +1030,7 @@ int webclient_transfer(const char* URI, const char* header, size_t header_sz,
         goto __exit;
 
     /* POST data */
-    length = webclient_write(session, (unsigned char*) data, data_sz);
+    length = webclient_write(session, (unsigned char *) data, data_sz);
     if (length != data_sz)
     {
         rt_kprintf("POST data %d:%d\n", length, data_sz);
@@ -1050,12 +1052,12 @@ int webclient_transfer(const char* URI, const char* header, size_t header_sz,
     if (session->content_length == 0)
     {
         total_read = 0;
-        buf_ptr = (unsigned char*) result;
+        buf_ptr = (unsigned char *) result;
         while (1)
         {
             /* read result */
             length = webclient_read(session, buf_ptr + total_read,
-                    result_sz - total_read);
+                                    result_sz - total_read);
             if (length <= 0)
                 break;
 
@@ -1065,7 +1067,7 @@ int webclient_transfer(const char* URI, const char* header, size_t header_sz,
     }
     else
     {
-        buf_ptr = (unsigned char*) result;
+        buf_ptr = (unsigned char *) result;
         for (total_read = 0; total_read < result_sz;)
         {
             length = webclient_read(session, buf_ptr, result_sz - total_read);
