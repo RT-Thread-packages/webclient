@@ -7,6 +7,7 @@
  * 2013-05-05     Bernard      the first version
  * 2013-06-10     Bernard      fix the slow speed issue when download file.
  * 2015-11-14     aozima       add content_length_remainder.
+ * 2017-12-23     aozima       update gethostbyname to getaddrinfo.
  */
 
 #include "webclient.h"
@@ -120,7 +121,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct s
     char *ptr;
     char port[6] = "80"; /* default port of 80(http) */
     int i = 0, is_domain;
-    struct hostent *hptr;
+
     const char *host_addr = 0;
     int url_len, host_addr_len = 0;
 
@@ -206,14 +207,20 @@ static int webclient_resolve_address(struct webclient_session *session, struct s
     if (is_domain)
     {
         /* resolve the host name. */
-        hptr = gethostbyname(session->host);
-        if (hptr == 0)
+        struct addrinfo hint, *res = NULL;
+        int ret;
+
+        memset(&hint, 0, sizeof(hint));
+        ret = getaddrinfo(session->host, NULL, &hint, &res);
+        if (ret != 0)
         {
-            rt_kprintf("WEBCLIENT: failed to resolve domain '%s'\n", session->host);
+            rt_kprintf("getaddrinfo err: %d '%s'\n", ret, session->host);
             rc = -1;
             goto _exit;
         }
-        memcpy(&server->sin_addr, *hptr->h_addr_list, sizeof(server->sin_addr));
+
+        memcpy(server, res->ai_addr, sizeof(struct sockaddr_in));
+        freeaddrinfo(res);
     }
     else
     {
