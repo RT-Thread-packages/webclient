@@ -1,6 +1,6 @@
 /*
  * File      : webclient.c
- * COPYRIGHT (C) 2012-2013, Shanghai Real-Thread Technology Co., Ltd
+ * COPYRIGHT (C) 2011-2018, Shanghai Real-Thread Technology Co., Ltd
  *
  * Change Logs:
  * Date           Author       Notes
@@ -8,14 +8,20 @@
  * 2013-06-10     Bernard      fix the slow speed issue when download file.
  * 2015-11-14     aozima       add content_length_remainder.
  * 2017-12-23     aozima       update gethostbyname to getaddrinfo.
+ * 2018-01-04     aozima       add ipv6 address support.
  */
 
 #include "webclient.h"
 
 #include <string.h>
 
+#ifdef RT_USING_DFS_NET
 #include <netdb.h>
 #include <sys/socket.h>
+#else
+#include <lwip/netdb.h>
+#include <lwip/sockets.h>
+#endif /* RT_USING_DFS_NET */
 
 #include "webclient_internal.h"
 
@@ -108,19 +114,24 @@ static int webclient_read_line(int socket, char *buffer, int size)
 /*
  * resolve server address
  * @param server the server sockaddress
- * @param url the input URL address, for example, http://www.rt-thread.org/index.html
+ * @param url the input URL address.
  * @param host_addr the buffer pointer to save server host address
  * @param request the pointer to point the request url, for example, /index.html
  *
  * @return 0 on resolve server address OK, others failed
+ *
+ * URL example:
+ * http://www.rt-thread.org/
+ * http://192.168.1.1:80/index.htm
+ * http://[fe80::1]/index.html
+ * http://[fe80::1]:80/index.html
  */
-static int webclient_resolve_address(struct webclient_session *session, struct sockaddr_in *server,
+static int webclient_resolve_address(struct webclient_session *session, struct addrinfo **res,
                                      const char *url, char **request)
 {
     int rc = WEBCLIENT_OK;
     char *ptr;
-    char port[6] = "80"; /* default port of 80(http) */
-    int i = 0, is_domain;
+    char port_str[6] = "80"; /* default port of 80(http) */
 
     const char *host_addr = 0;
     int url_len, host_addr_len = 0;
@@ -128,62 +139,73 @@ static int webclient_resolve_address(struct webclient_session *session, struct s
     url_len = strlen(url);
 
     /* strip protocol(http) */
-    ptr = strchr(url, ':');
-    if (ptr != NULL)
-    {
-        url = ptr + 1;
-    }
-
-    /* URL must start with double forward slashes. */
-    if ((url[0] != '/') || (url[1] != '/'))
+    if (strncmp(url, "http://", 7) != 0)
     {
         rc = -1;
         goto _exit;
     }
+    host_addr = url + 7;
 
-    url += 2;
-    is_domain = 0;
-    i = 0;
-    /* allow specification of port in URL like http://www.server.net:8080/ */
-    while (*url)
+    /* ipv6 address */
+    if (host_addr[0] == '[')
     {
-        if (*url == '/')
+        //rt_kprintf("is ipv6 address!\n");
+
+        host_addr += 1;
+        ptr = strstr(host_addr, "]");
+        if (!ptr)
         {
-            host_addr_len = url - host_addr;
-            break;
+            //rt_kprintf("ipv6 address miss end!\n");
+            rc = -1;
+            goto _exit;
+        }
+        host_addr_len = ptr - host_addr;
+
+        ptr = strstr(host_addr + host_addr_len, "/");
+        if (!ptr)
+        {
+            rc = -1;
+            goto _exit;
+        }
+        else if (ptr != (host_addr + host_addr_len + 1))
+        {
+            int port_len = ptr - host_addr - host_addr_len - 2;
+
+            strncpy(port_str, host_addr + host_addr_len + 2, port_len);
+            port_str[port_len] = '\0';
+            //rt_kprintf("ipv6 address port: %s\n", port_str);
         }
 
-        if (*url == ':')
-        {
-            unsigned char w;
-
-            host_addr_len = url - host_addr;
-
-            for (w = 0; w < 5 && url[w + 1] != '/' && url[w + 1] != '\0'; w++)
-                port[w] = url[w + 1];
-
-            /* get port ok */
-            port[w] = '\0';
-            url += w + 1;
-            break;
-        }
-
-        if ((*url < '0' || *url > '9') && *url != '.')
-            is_domain = 1;
-
-        if (host_addr == 0)
-        {
-            host_addr = url;
-            //rt_kprintf("webclient_resolve_address host_addr start: %s\n", host_addr);
-        }
-
-        url++;
+        *request = (char *)ptr;
     }
-    *request = (char *) url;
+    else /* ipv4 or domain. */
+    {
+        char *port_ptr;
+
+        ptr = strstr(host_addr, "/");
+        if (!ptr)
+        {
+            rc = -1;
+            goto _exit;
+        }
+        host_addr_len = ptr - host_addr;
+        *request = (char *)ptr;
+
+        port_ptr = strstr(host_addr, ":");
+        if (port_ptr)
+        {
+            int port_len = ptr - port_ptr - 1;
+
+            strncpy(port_str, port_ptr + 1, port_len);
+            port_str[port_len] = '\0';
+
+            host_addr_len = port_ptr - host_addr;
+        }
+    }
 
     if ((host_addr_len < 1) || (host_addr_len > url_len))
     {
-        //rt_kprintf("webclient_resolve_address host_addr_len: %d error!\n", host_addr_len);
+        //rt_kprintf("%s host_addr_len: %d error!\n", __FUNCTION__, host_addr_len);
         rc = -1;
         goto _exit;
     }
@@ -204,31 +226,20 @@ static int webclient_resolve_address(struct webclient_session *session, struct s
         //rt_kprintf("session->host: %s\n", session->host);
     }
 
-    if (is_domain)
     {
         /* resolve the host name. */
-        struct addrinfo hint, *res = NULL;
+        struct addrinfo hint;
         int ret;
 
         memset(&hint, 0, sizeof(hint));
-        ret = getaddrinfo(session->host, NULL, &hint, &res);
+        ret = getaddrinfo(session->host, port_str, &hint, res);
         if (ret != 0)
         {
             rt_kprintf("getaddrinfo err: %d '%s'\n", ret, session->host);
             rc = -1;
             goto _exit;
         }
-
-        memcpy(server, res->ai_addr, sizeof(struct sockaddr_in));
-        freeaddrinfo(res);
     }
-    else
-    {
-        inet_aton(session->host, (struct in_addr *) & (server->sin_addr));
-    }
-    /* set the port */
-    server->sin_port = htons((int) strtol(port, NULL, 10));
-    server->sin_family = AF_INET;
 
 _exit:
     if (rc != WEBCLIENT_OK)
@@ -237,6 +248,12 @@ _exit:
         {
             web_free(session->host);
             session->host = 0;
+        }
+
+        if (*res)
+        {
+            freeaddrinfo(*res);
+            *res = RT_NULL;
         }
     }
 
@@ -473,10 +490,11 @@ int webclient_handle_response(struct webclient_session *session)
  */
 int webclient_connect(struct webclient_session *session, const char *URI)
 {
-    int rc;
+    int rc = WEBCLIENT_OK;
     int socket_handle;
     int timeout = WEBCLIENT_SOCKET_TIMEO;
-    struct sockaddr_in server;
+    struct addrinfo *res = RT_NULL;
+    //struct sockaddr_in server;
     char *request;
 
     RT_ASSERT(session != RT_NULL);
@@ -485,9 +503,17 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     session->socket = -1;
 
     /* Check valid IP address and URL */
-    rc = webclient_resolve_address(session, &server, URI, &request);
+    rc = webclient_resolve_address(session, &res, URI, &request);
     if (rc != WEBCLIENT_OK)
-        return rc;
+    {
+        goto _exit;
+    }
+
+    if (!res)
+    {
+        rc = -1;
+        goto _exit;
+    }
 
     /* copy host address */
     if (*request)
@@ -495,9 +521,12 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     else
         session->request = RT_NULL;
 
-    socket_handle = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    socket_handle = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP); //
     if (socket_handle < 0)
-        return -WEBCLIENT_NOSOCKET;
+    {
+        rc = -WEBCLIENT_NOSOCKET;
+        goto _exit;
+    }
 
     /* set recv timeout option */
     setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void *) &timeout,
@@ -505,16 +534,23 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void *) &timeout,
                sizeof(timeout));
 
-    if (connect(socket_handle, (struct sockaddr *) &server,
-                sizeof(struct sockaddr)) != 0)
+    if (connect(socket_handle, res->ai_addr, res->ai_addrlen) != 0)
     {
         /* connect failed, close socket handle */
         closesocket(socket_handle);
-        return -WEBCLIENT_CONNECT_FAILED;
+        rc = -WEBCLIENT_CONNECT_FAILED;
+        goto _exit;
     }
 
     session->socket = socket_handle;
-    return WEBCLIENT_OK;
+
+_exit:
+    if (res)
+    {
+        freeaddrinfo(res);
+    }
+
+    return rc;
 }
 
 struct webclient_session *webclient_open(const char *URI)
