@@ -3,7 +3,7 @@
 
 #include <rtthread.h>
 
-#ifdef RT_USING_ESP_PSRAM
+#ifdef RT_USING_PSRAM
 #include <drv_sdram.h>
 
 #define web_malloc  sdram_malloc
