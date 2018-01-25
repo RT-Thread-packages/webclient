@@ -131,6 +131,14 @@ int webclient_post_file(const char* URI, const char* filename,
     }
     memset(session, 0x0, sizeof(struct webclient_session));
 
+    if(strncmp(URI, "https://", 8) == 0)
+    {
+        if(webclient_open_tls(session, URI) < 0)
+        {   
+           goto __exit;
+        }
+    }
+
     rc = webclient_connect(session, URI);
     if (rc < 0)
         goto __exit;
