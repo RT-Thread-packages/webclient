@@ -18,8 +18,13 @@
 
 #include <rtthread.h>
 
+#ifdef WEBCLIENT_USING_TLS
+#include <tls_client.h>
+#endif
+
 #define WEBCLIENT_HEADER_BUFSZ      4096
 #define WEBCLIENT_RESPONSE_BUFSZ    4096
+#define WEBCLIENT_TLS_READ_BUFFER   4096
 
 //typedef unsigned int size_t;
 
@@ -77,6 +82,11 @@ struct webclient_session
 
     /* remainder of content reading */
     size_t content_length_remainder;
+    
+#ifdef WEBCLIENT_USING_TLS
+        /* mbedtls session struct*/
+        MbedTLSSession *tls_session;
+#endif
 };
 
 struct webclient_session *webclient_open(const char *URI);
