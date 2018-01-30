@@ -18,7 +18,7 @@
 
 #include <rtthread.h>
 
-#ifdef PKG_USING_WEBCLIENT_TLS
+#ifdef WEBCLIENT_USING_TLS
 #include <tls_client.h>
 #endif
 
@@ -83,7 +83,7 @@ struct webclient_session
     /* remainder of content reading */
     size_t content_length_remainder;
     
-#ifdef PKG_USING_WEBCLIENT_TLS
+#ifdef WEBCLIENT_USING_TLS
         /* mbedtls session struct*/
         MbedTLSSession *tls_session;
 #endif

@@ -3,18 +3,9 @@
 
 #include <rtthread.h>
 
-#ifdef RT_USING_PSRAM
-#include <drv_sdram.h>
-
-#define web_malloc  sdram_malloc
-#define web_free    sdram_free
-#define web_realloc sdram_realloc
-#define web_calloc  sdram_calloc
-#else
-#define web_malloc  malloc
-#define web_free    free
-#define web_realloc realloc
-#define web_calloc  calloc
-#endif
+#define web_malloc  rt_malloc
+#define web_free    rt_free
+#define web_realloc rt_realloc
+#define web_calloc  rt_calloc
 
 #endif
