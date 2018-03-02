@@ -32,7 +32,7 @@
 
 #include <rtdbg.h>
 
-#define WEBCLIENT_SOCKET_TIMEO  6000 /* 6 second */
+#define WEBCLIENT_SOCKET_TIMEO  6 /* 6 second */
 
 extern long int strtol(const char *nptr, char **endptr, int base);
 
@@ -590,7 +590,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 {
     int rc = WEBCLIENT_OK;
     int socket_handle;
-    int timeout = WEBCLIENT_SOCKET_TIMEO;
+    struct timeval timeout;
     struct addrinfo *res = RT_NULL;
     //struct sockaddr_in server;
     char *request;
@@ -599,6 +599,9 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 
     /* initialize the socket of session */
     session->socket = -1;
+	
+	timeout.tv_sec = WEBCLIENT_SOCKET_TIMEO;
+	timeout.tv_usec = 0;
     
 #ifdef WEBCLIENT_USING_TLS
     if(strncmp(URI, "https://", 8) == 0)
@@ -803,8 +806,7 @@ struct webclient_session *webclient_open_position(const char *URI, int position)
                               rt_strlen(range_header)) != WEBCLIENT_OK)
     {
         /* connect to webclient server failed. */
-        webclient_close(session);
-        return RT_NULL;
+        goto __exit;
     }
 
     /* handle the response header of webclient server */
@@ -818,12 +820,20 @@ struct webclient_session *webclient_open_position(const char *URI, int position)
             webclient_close(session);
             session = webclient_open_position(location, position);
 
-            web_free(location);
+            if (range_header)
+                web_free(range_header);
+
+            if(location)
+                web_free(location);
+
             return session;
         }
     }
 
     /* open successfully */
+    if (range_header)
+        web_free(range_header);
+
     return session;
 
 __exit:
@@ -876,11 +886,17 @@ int webclient_set_timeout(struct webclient_session *session, int millisecond)
 {
     RT_ASSERT(session != RT_NULL);
 
+    struct timeval timeout;
+    int second = rt_tick_from_millisecond(millisecond) / 1000 ;
+
+    timeout.tv_sec = second;
+    timeout.tv_usec = 0;
+
     /* set recv timeout option */
     setsockopt(session->socket, SOL_SOCKET, SO_RCVTIMEO,
-               (void *) &millisecond, sizeof(millisecond));
+               (void *) &timeout, sizeof(timeout));
     setsockopt(session->socket, SOL_SOCKET, SO_SNDTIMEO,
-               (void *) &millisecond, sizeof(millisecond));
+               (void *) &timeout, sizeof(timeout));
 
     return 0;
 }
