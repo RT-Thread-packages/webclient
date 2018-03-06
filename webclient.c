@@ -599,9 +599,9 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 
     /* initialize the socket of session */
     session->socket = -1;
-	
-	timeout.tv_sec = WEBCLIENT_SOCKET_TIMEO;
-	timeout.tv_usec = 0;
+    
+    timeout.tv_sec = WEBCLIENT_SOCKET_TIMEO;
+    timeout.tv_usec = 0;
     
 #ifdef WEBCLIENT_USING_TLS
     if(strncmp(URI, "https://", 8) == 0)
@@ -645,11 +645,11 @@ int webclient_connect(struct webclient_session *session, const char *URI)
         }
         
         if((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
-    	{
-    		rt_kprintf("webclient mbedtls_client_connect err return : -0x%x\n", -tls_ret);
+        {
+            rt_kprintf("webclient mbedtls_client_connect err return : -0x%x\n", -tls_ret);
             rc = -WEBCLIENT_CONNECT_FAILED;
             goto _exit;
-    	}
+        }
         
         socket_handle = session->tls_session->server_fd.fd;
 
@@ -703,7 +703,7 @@ _exit:
 int webclient_open_tls(struct webclient_session * session, const char *URI)
 {
     int tls_ret = 0;
-    const char *pers = "wenclient";
+    const char *pers = "webclient";
 
     if(!session)
         return -RT_ERROR;
@@ -820,11 +820,8 @@ struct webclient_session *webclient_open_position(const char *URI, int position)
             webclient_close(session);
             session = webclient_open_position(location, position);
 
-            if (range_header)
-                web_free(range_header);
-
-            if(location)
-                web_free(location);
+            web_free(range_header);
+            web_free(location);
 
             return session;
         }
