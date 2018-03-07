@@ -163,7 +163,6 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     int rc = WEBCLIENT_OK;
     char *ptr;
     char port_str[6] = "80"; /* default port of 80(http) */
-    char port_tls_str[6] = "443"; /* default port of 443(https) */
 
     const char *host_addr = 0;
     int url_len, host_addr_len = 0;
@@ -177,6 +176,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     }
     else if(strncmp(url, "https://", 8) == 0)
     {
+        strncpy(port_str, "443", 4);
         host_addr = url + 8;
     }
     else
@@ -240,7 +240,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             {
                 int port_tls_len = ptr - port_tls_ptr - 1;
 
-                strncpy(port_tls_str, port_tls_ptr + 1, port_tls_len);
+                strncpy(port_str, port_tls_ptr + 1, port_tls_len);
                 port_str[port_tls_len] = '\0';
 
                 host_addr_len = port_tls_ptr - host_addr;
@@ -310,8 +310,8 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
 #ifdef WEBCLIENT_USING_TLS
         if(session->tls_session)
         {
-            session->tls_session->port = rt_strdup(port_tls_str);
-            ret = getaddrinfo(session->tls_session->host, port_tls_str, &hint, res);
+            session->tls_session->port = rt_strdup(port_str);
+            ret = getaddrinfo(session->tls_session->host, port_str, &hint, res);
             if (ret != 0)
             {
                 rt_kprintf("getaddrinfo err: %d '%s'\n", ret, session->host);
@@ -1105,9 +1105,10 @@ int webclient_close(struct webclient_session *session)
 #ifdef WEBCLIENT_USING_TLS
     if(session->tls_session)
         mbedtls_client_close(session->tls_session);
-#endif
+#else
     if (session->socket >= 0)
-        closesocket(session->socket);    
+        closesocket(session->socket);  
+#endif  
     if(session->transfer_encoding)
         web_free(session->transfer_encoding);    
     if(session->content_type)
