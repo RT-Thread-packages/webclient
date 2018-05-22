@@ -1119,6 +1119,8 @@ int webclient_close(struct webclient_session *session)
         web_free(session->host);
     if(session->request)
         web_free(session->request);
+    if(session->location)
+        web_free(session->location);
     if(session)
         web_free(session);
 
