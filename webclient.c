@@ -15,6 +15,8 @@
 
 #include <string.h>
 
+#include <sys/time.h>
+
 #ifdef RT_USING_DFS_NET
 #include <netdb.h>
 #include <sys/socket.h>
