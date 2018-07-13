@@ -263,7 +263,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         }
 #else
         port_ptr = strstr(host_addr, ":");
-        if (port_ptr)
+        if (port_ptr && port_ptr < ptr)
         {
             int port_len = ptr - port_ptr - 1;
 
