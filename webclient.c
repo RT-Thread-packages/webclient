@@ -28,7 +28,7 @@
 #include "webclient_internal.h"
 
 // #define DEBUG_ENABLE
-#define DEBUG_SECTION_NAME  "[WEB]"
+#define DEBUG_SECTION_NAME  "HTTP"
 #define DEBUG_LEVEL         DBG_LOG
 #define DEBUG_COLOR
 
