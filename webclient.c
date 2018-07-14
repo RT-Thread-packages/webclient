@@ -671,6 +671,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
         socket_handle = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP); //
         if (socket_handle < 0)
         {
+            dbg_log(DBG_ERROR, "Create socket failed (%d)!", socket_handle);
             rc = -WEBCLIENT_NOSOCKET;
             goto _exit;
         }
