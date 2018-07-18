@@ -17,7 +17,7 @@
 
 #include <sys/time.h>
 
-#ifdef RT_USING_DFS_NET
+#if defined(RT_USING_DFS_NET) || defined(SAL_USING_POSIX)
 #include <netdb.h>
 #include <sys/socket.h>
 #else
