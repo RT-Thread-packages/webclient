@@ -23,7 +23,7 @@
 #else
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
-#endif /* RT_USING_DFS_NET */
+#endif /* SAL_USING_POSIX */
 
 #include "webclient_internal.h"
 
@@ -1108,10 +1108,9 @@ int webclient_close(struct webclient_session *session)
 #ifdef WEBCLIENT_USING_TLS
     if(session->tls_session)
         mbedtls_client_close(session->tls_session);
-#else
+#endif
     if (session->socket >= 0)
-        closesocket(session->socket);  
-#endif  
+		closesocket(session->socket); 
     if(session->transfer_encoding)
         web_free(session->transfer_encoding);    
     if(session->content_type)
@@ -1125,8 +1124,10 @@ int webclient_close(struct webclient_session *session)
     if(session->location)
         web_free(session->location);
     if(session)
+    {
         web_free(session);
-
+        session = RT_NULL;
+    }
     return 0;
 }
 
