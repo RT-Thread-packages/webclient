@@ -1,48 +1,71 @@
+/*
+ * File      : webclient_file.c
+ * COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2017-07-26     chenyong     modify log information
+ */
+
+
 #include <stdint.h>
 #include <stdlib.h>
 
 #include <rtthread.h>
 #include "webclient.h"
-#include "webclient_internal.h"
-
-#ifdef RT_USING_FINSH
-#include <finsh.h>
-#endif
 
 #ifdef RT_USING_DFS
 #include <dfs_posix.h>
 
 int webclient_get_file(const char* URI, const char* filename)
 {
-    int fd = -1;
+    int fd = -1, rc = WEBCLIENT_OK;
     size_t offset;
     size_t length, total_length = 0;
-    rt_uint8_t* ptr = NULL;
-    struct webclient_session* session = NULL;
+    unsigned char *ptr = RT_NULL;
+    struct webclient_session* session = RT_NULL;
 
     session = webclient_open(URI);
-    if (session == NULL)
+    if (session == RT_NULL)
     {
-        rt_kprintf("open website failed.\n");
+        LOG_E("get file failed, open URI(%s) error.", URI);
+        rc = -WEBCLIENT_FILE_ERROR;
         goto __exit;
     }
     if (session->response != 200)
     {
-        rt_kprintf("wrong response: %d\n", session->response);
+        LOG_E("get file failed, wrong response: %d.", session->response);
+        rc = -WEBCLIENT_ERROR;
         goto __exit;
     }
 
     fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0);
     if (fd < 0)
     {
-        rt_kprintf("open file failed\n");
+        LOG_E("get file failed, open file(%s) error.", filename);
+        rc = -WEBCLIENT_ERROR;
         goto __exit;
     }
 
-    ptr = web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
-    if (ptr == NULL)
+    ptr = (rt_uint8_t *) web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
+    if (ptr == RT_NULL)
     {
-        rt_kprintf("out of memory\n");
+        LOG_E("get file failed, no memory for response buffer.");
+        rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
 
@@ -58,7 +81,9 @@ int webclient_get_file(const char* URI, const char* filename)
                 rt_kprintf(">");
             }
             else
+            {
                 break;
+            }
         }
     }
     else
@@ -76,7 +101,9 @@ int webclient_get_file(const char* URI, const char* filename)
                 rt_kprintf(">");
             }
             else
+            {
                 break;
+            }
 
             offset += length;
         }
@@ -84,15 +111,26 @@ int webclient_get_file(const char* URI, const char* filename)
 
     if (total_length)
     {
-        rt_kprintf("\nSave %d bytes\n", total_length);
+        LOG_D("save %d bytes.", total_length);
     }
 
 __exit:
-    if (fd >= 0) close(fd);
-    if (session != NULL) webclient_close(session);
-    if (ptr != NULL) web_free(ptr);
+    if (fd >= 0)
+    {
+        close(fd);
+    }
 
-    return 0;
+    if (session != RT_NULL)
+    {
+        webclient_close(session);
+    }
+
+    if (ptr != RT_NULL)
+    {
+        web_free(ptr);
+    }
+
+    return rc;
 }
 
 int webclient_post_file(const char* URI, const char* filename,
@@ -101,13 +139,14 @@ int webclient_post_file(const char* URI, const char* filename,
     size_t length;
     char boundary[60];
     int fd = -1, rc = WEBCLIENT_OK;
-    char *header = NULL, *header_ptr;
-    unsigned char *buffer = NULL, *buffer_ptr;
-    struct webclient_session* session = NULL;
+    char *header = RT_NULL, *header_ptr;
+    unsigned char *buffer = RT_NULL, *buffer_ptr;
+    struct webclient_session* session = RT_NULL;
 
     fd = open(filename, O_RDONLY, 0);
     if (fd < 0)
     {
+        LOG_D("post file failed, open file(%s) error.", filename);
         rc = -WEBCLIENT_FILE_ERROR;
         goto __exit;
     }
@@ -116,36 +155,39 @@ int webclient_post_file(const char* URI, const char* filename,
     length = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    buffer = web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
-    if (buffer == NULL)
+    buffer = (unsigned char *) web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
+    if (buffer == RT_NULL)
     {
+        LOG_D("post file failed, no memory for response buffer.");
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
 
-    session = (struct webclient_session*) web_malloc(sizeof(struct webclient_session));
+    session = (struct webclient_session*) web_calloc(1, sizeof(struct webclient_session));
     if (!session)
     {
+        LOG_D("post file failed, no memory for session.");
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
-    memset(session, 0x0, sizeof(struct webclient_session));
 
     rc = webclient_connect(session, URI);
     if (rc < 0)
-        goto __exit;
-
-    header = (char*) web_malloc(WEBCLIENT_HEADER_BUFSZ);
-    if (header == NULL)
     {
+        goto __exit;
+    }
+
+    header = (char *) web_malloc(WEBCLIENT_HEADER_BUFSZ);
+    if (header == RT_NULL)
+    {
+        LOG_D("post file failed, no memory for header buffer.");
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
     header_ptr = header;
 
     /* build boundary */
-    rt_snprintf(boundary, sizeof(boundary), "----------------------------%012d",
-            rt_tick_get());
+    rt_snprintf(boundary, sizeof(boundary), "----------------------------%012d", rt_tick_get());
 
     /* build encapsulated mime_multipart information*/
     buffer_ptr = buffer;
@@ -170,10 +212,11 @@ int webclient_post_file(const char* URI, const char* filename,
             WEBCLIENT_HEADER_BUFSZ - (header_ptr - header),
             "Content-Type: multipart/form-data; boundary=%s\r\n", boundary);
     /* send header */
-    rc = webclient_send_header(session, WEBCLIENT_POST, header,
-            header_ptr - header);
+    rc = webclient_send_header(session, WEBCLIENT_POST, header, header_ptr - header);
     if (rc < 0)
+    {
         goto __exit;
+    }
 
     /* send mime_multipart */
     webclient_write(session, buffer, buffer_ptr - buffer);
@@ -183,7 +226,10 @@ int webclient_post_file(const char* URI, const char* filename,
     {
         length = read(fd, buffer, WEBCLIENT_RESPONSE_BUFSZ);
         if (length <= 0)
+        {
             break;
+        }
+
         webclient_write(session, buffer, length);
     }
 
@@ -192,25 +238,45 @@ int webclient_post_file(const char* URI, const char* filename,
     webclient_write(session, buffer, strlen(boundary) + 6);
 
 __exit:
-    if (fd >= 0) close(fd);
-    if (session != NULL) webclient_close(session);
-    if (buffer != NULL) web_free(buffer);
-    if (header != NULL) web_free(header);
+    if (fd >= 0)
+    {
+        close(fd);
+    }
+
+    if (session != RT_NULL)
+    {
+        webclient_close(session);
+    }
+
+    if (buffer != RT_NULL)
+    {
+        web_free(buffer);
+    }
+
+    if (header != RT_NULL)
+    {
+        web_free(header);
+    }
 
     return 0;
 }
+
 
 int wget(int argc, char** argv)
 {
     if (argc != 3)
     {
-        rt_kprintf("wget URI filename\n");
-        return 0;
+        LOG_E("wget [URI] [filename]  -get file by URI.");
+        return -1;
     }
 
     webclient_get_file(argv[1], argv[2]);
     return 0;
 }
-MSH_CMD_EXPORT(wget, web download file);
 
-#endif
+#ifdef FINSH_USING_MSH
+#include <finsh.h>
+MSH_CMD_EXPORT(wget, web download file);
+#endif /* FINSH_USING_MSH */
+
+#endif /* RT_USING_DFS */
