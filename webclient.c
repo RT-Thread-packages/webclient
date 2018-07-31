@@ -254,7 +254,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         
 #ifdef WEBCLIENT_USING_TLS
         if(session->tls_session)
-            session->tls_session->host = rt_strdup(host_addr_new);
+            session->tls_session->host = web_strdup(host_addr_new);
 #endif
     }
 
@@ -270,11 +270,11 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
 #ifdef WEBCLIENT_USING_TLS
         if(session->tls_session)
         {
-            session->tls_session->port = rt_strdup(port_str);
+            session->tls_session->port = web_strdup(port_str);
             ret = getaddrinfo(session->tls_session->host, port_str, &hint, res);
             if (ret != 0)
             {
-                rt_kprintf("getaddrinfo err: %d '%s'", ret, session->host);
+                LOG_E("getaddrinfo err: %d '%s'", ret, session->host);
                 rc = -WEBCLIENT_ERROR;          
             }
             
@@ -484,19 +484,19 @@ int webclient_handle_response(struct webclient_session *session)
         mime_ptr = webclient_header_skip_prefix(mimeBuffer, "Last-Modified:");
         if (mime_ptr != RT_NULL)
         {
-            session->last_modified = rt_strdup(mime_ptr);
+            session->last_modified = web_strdup(mime_ptr);
         }
 
         mime_ptr = webclient_header_skip_prefix(mimeBuffer, "Transfer-Encoding: ");
         if (mime_ptr != RT_NULL)
         {
-            session->transfer_encoding = rt_strdup(mime_ptr);
+            session->transfer_encoding = web_strdup(mime_ptr);
         }
 
         mime_ptr = webclient_header_skip_prefix(mimeBuffer, "Content-Type:");
         if (mime_ptr != RT_NULL)
         {
-            session->content_type = rt_strdup(mime_ptr);
+            session->content_type = web_strdup(mime_ptr);
         }
 
         mime_ptr = webclient_header_skip_prefix(mimeBuffer, "Content-Length:");
@@ -508,7 +508,7 @@ int webclient_handle_response(struct webclient_session *session)
         mime_ptr = webclient_header_skip_prefix(mimeBuffer, "Location: ");
         if (mime_ptr != RT_NULL)
         {
-            session->location = rt_strdup(mime_ptr);
+            session->location = web_strdup(mime_ptr);
         }
 
         mime_ptr = webclient_header_skip_prefix(mimeBuffer, "Content-Range:");
@@ -657,7 +657,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     /* copy host address */
     if (*request)
     {
-        session->request = rt_strdup(request);
+        session->request = web_strdup(request);
     }
 
 #ifdef WEBCLIENT_USING_TLS
@@ -667,13 +667,13 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 
         if((tls_ret = mbedtls_client_context(session->tls_session)) < 0)
         {
-            rt_kprintf("connect failed, https client context return: -0x%x", -tls_ret);
+            LOG_E("connect failed, https client context return: -0x%x", -tls_ret);
             return -WEBCLIENT_ERROR;
         }
         
         if((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
         {
-            rt_kprintf("connect failed, https client connect return: -0x%x", -tls_ret);
+            LOG_E("connect failed, https client connect return: -0x%x", -tls_ret);
             rc = -WEBCLIENT_CONNECT_FAILED;
             goto __exit;
         }
@@ -762,7 +762,7 @@ struct webclient_session *webclient_open(const char *URI)
         /* relocation */
         if ((session->response == 302 || session->response == 301) && session->location)
         {
-            char *location = rt_strdup(session->location);
+            char *location = web_strdup(session->location);
             if (location)
             {
                 webclient_close(session);
@@ -823,7 +823,7 @@ struct webclient_session *webclient_open_position(const char *URI, int position)
     /* relocation */
     if ((session->response == 302 || session->response == 301) && session->location)
     {
-        char *location = rt_strdup(session->location);
+        char *location = web_strdup(session->location);
         if (location)
         {
             webclient_close(session);

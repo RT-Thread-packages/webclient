@@ -21,7 +21,6 @@
  * 2017-07-26     chenyong     modify log information
  */
 
-
 #include <stdint.h>
 #include <stdlib.h>
 

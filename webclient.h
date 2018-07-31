@@ -66,6 +66,13 @@
 #define web_free                       rt_free
 #endif
 
+#ifndef web_strdup
+#define web_strdup                     rt_strdup
+#endif
+
+#define WEBCLIENT_SW_VERSION           "2.0.0"
+#define WEBCLIENT_SW_VERSION_NUM       0x20000
+
 #ifndef WEBCLIENT_HEADER_BUFSZ
 #define WEBCLIENT_HEADER_BUFSZ         4096
 #endif
