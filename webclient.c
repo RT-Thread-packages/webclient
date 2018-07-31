@@ -134,12 +134,12 @@ static int webclient_read_line(struct webclient_session* session, char *buffer, 
     return count;
 }
 
-/*
+/**
  * resolve server address
  *
- * @param server the server sockaddress
- * @param url the input URL address.
- * @param host_addr the buffer pointer to save server host address
+ * @param session http session
+ * @param res the server address information
+ * @param url the input server URI address
  * @param request the pointer to point the request url, for example, /index.html
  *
  * @return 0 on resolve server address OK, others failed
@@ -219,36 +219,6 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         host_addr_len = ptr - host_addr;
         *request = (char *) ptr;
         
-#ifdef WEBCLIENT_USING_TLS
-        char *port_tls_ptr;
-
-        if(session->tls_session)
-        {
-            port_tls_ptr = strstr(host_addr, ":");
-            if (port_tls_ptr)
-            {
-                int port_tls_len = ptr - port_tls_ptr - 1;
-
-                strncpy(port_str, port_tls_ptr + 1, port_tls_len);
-                port_str[port_tls_len] = '\0';
-
-                host_addr_len = port_tls_ptr - host_addr;
-            }
-        }
-        else 
-        {
-            port_ptr = strstr(host_addr, ":");
-            if (port_ptr)
-            {
-                int port_len = ptr - port_ptr - 1;
-
-                strncpy(port_str, port_ptr + 1, port_len);
-                port_str[port_len] = '\0';
-
-                host_addr_len = port_ptr - host_addr;
-            }
-        }
-#else
         /* resolve port */
         port_ptr = strstr(host_addr, ":");
         if (port_ptr && port_ptr < ptr)
@@ -260,7 +230,6 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
 
             host_addr_len = port_ptr - host_addr;
         }
-#endif
     }
 
     if ((host_addr_len < 1) || (host_addr_len > url_len))
@@ -306,21 +275,13 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             if (ret != 0)
             {
                 rt_kprintf("getaddrinfo err: %d '%s'", ret, session->host);
-                rc = -WEBCLIENT_ERROR;
-                goto __exit;
+                rc = -WEBCLIENT_ERROR;          
             }
+            
+            goto __exit;
         }
-        else
-        {
-            ret = getaddrinfo(session->host, port_str, &hint, res);
-            if (ret != 0)
-            {
-                LOG_E("getaddrinfo err: %d '%s'.", ret, session->host);
-                rc = -WEBCLIENT_ERROR;
-                goto __exit;
-            }
-        }
-#else
+#endif
+
         ret = getaddrinfo(session->host, port_str, &hint, res);
         if (ret != 0)
         {
@@ -328,7 +289,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             rc = -WEBCLIENT_ERROR;
             goto __exit;
         }
-#endif
+
     }
 __exit:
     if (rc != WEBCLIENT_OK)
@@ -464,6 +425,14 @@ __exit:
     return rc;
 }
 
+/**
+ * resolve server response data.
+ *
+ * @param session http session
+ *
+ * @return <0: resolve response data failed
+ *         =0: success
+ */
 int webclient_handle_response(struct webclient_session *session)
 {
     int rc = WEBCLIENT_OK;
@@ -557,17 +526,15 @@ int webclient_handle_response(struct webclient_session *session)
             if (ptr)
             {
                 ptr ++;
+                /* The total length of the get data */
                 totle_length = atoi(ptr);
+                //TODO: process total length
             }
         }
     }
 
-    /* use the content length in content range */
-    //if (content_length != -1)
-    //    session->content_length = content_length;
-
     session->content_length_remainder =
-        (session->content_length) ? session->content_length : 0xFFFFFFFF;
+        (session->content_length) ? (size_t) session->content_length : 0xFFFFFFFF;
 
     if (session->transfer_encoding && strcmp(session->transfer_encoding, "chunked") == 0)
     {
@@ -591,10 +558,55 @@ int webclient_handle_response(struct webclient_session *session)
     return session->response;
 }
 
-/*
- This is the main HTTP client connect work.  Makes the connection
- and handles the protocol and reads the return headers.  Needs
- to leave the stream at the start of the real data.
+#ifdef WEBCLIENT_USING_TLS
+/**
+ * create and initialize https session.
+ *
+ * @param session http session
+ * @param URI the input server URI address
+ *
+ * @return <0: create failed, no memory or other errors
+ *         =0: success
+ */
+static int webclient_open_tls(struct webclient_session *session, const char *URI)
+{
+    int tls_ret = 0;
+    const char *pers = "webclient";
+
+    RT_ASSERT(session);
+
+    session->tls_session = (MbedTLSSession *) web_calloc(1, sizeof(MbedTLSSession));
+    if (session->tls_session == RT_NULL)
+    {
+        return -WEBCLIENT_NOMEM;
+    }
+
+    session->tls_session->buffer_len = WEBCLIENT_TLS_READ_BUFFER;
+    session->tls_session->buffer = web_malloc(session->tls_session->buffer_len);
+    if(session->tls_session->buffer == RT_NULL)
+    {
+        LOG_E("no memory for tls_session buffer!");
+        return -WEBCLIENT_ERROR;
+    }
+    
+    if((tls_ret = mbedtls_client_init(session->tls_session, (void *)pers, strlen(pers))) < 0)
+    {
+        LOG_E("initialize https client failed return: -0x%x.", -tls_ret);
+        return -WEBCLIENT_ERROR;
+    }
+    
+    return WEBCLIENT_OK;
+}   
+#endif
+
+/**
+ * connect to http server.
+ *
+ * @param session http session
+ * @param URI the input server URI address
+ *
+ * @return <0: connect failed or other error
+ *         =0: connect success
  */
 int webclient_connect(struct webclient_session *session, const char *URI)
 {
@@ -613,16 +625,20 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     timeout.tv_sec = WEBCLIENT_DEFAULT_TIMEO;
     timeout.tv_usec = 0;
     
-#ifdef WEBCLIENT_USING_TLS
     if(strncmp(URI, "https://", 8) == 0)
     {
+#ifdef WEBCLIENT_USING_TLS
         if(webclient_open_tls(session, URI) < 0)
         {   
-           LOG_E("connect failed, tls client open URI(%s) failed!", URI);
+           LOG_E("connect failed, https client open URI(%s) failed!", URI);
            return -WEBCLIENT_ERROR;
         }
+#else
+        LOG_E("not support https connect, please enable webclient https configure!");
+        rc = -WEBCLIENT_ERROR;
+        goto __exit;
+#endif
     }
-#endif 
 
     /* Check valid IP address and URL */
     rc = webclient_resolve_address(session, &res, URI, &request);
@@ -651,13 +667,13 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 
         if((tls_ret = mbedtls_client_context(session->tls_session)) < 0)
         {
-            rt_kprintf("connect failed, tls client context return: -0x%x", -tls_ret);
+            rt_kprintf("connect failed, https client context return: -0x%x", -tls_ret);
             return -WEBCLIENT_ERROR;
         }
         
         if((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
         {
-            rt_kprintf("connect failed, tls client connect return: -0x%x", -tls_ret);
+            rt_kprintf("connect failed, https client connect return: -0x%x", -tls_ret);
             rc = -WEBCLIENT_CONNECT_FAILED;
             goto __exit;
         }
@@ -711,38 +727,6 @@ __exit:
 
     return rc;
 }
-
-#ifdef WEBCLIENT_USING_TLS
-static int webclient_open_tls(struct webclient_session *session, const char *URI)
-{
-    int tls_ret = 0;
-    const char *pers = "webclient";
-
-    RT_ASSERT(session);
-
-    session->tls_session = (MbedTLSSession *) web_calloc(1, sizeof(MbedTLSSession));
-    if (session->tls_session == RT_NULL)
-    {
-        return -WEBCLIENT_ERROR;
-    }
-
-    session->tls_session->buffer_len = WEBCLIENT_TLS_READ_BUFFER;
-    session->tls_session->buffer = web_malloc(session->tls_session->buffer_len);
-    if(session->tls_session->buffer == RT_NULL)
-    {
-        LOG_E("no memory for tls_session buffer!");
-        return -WEBCLIENT_ERROR;
-    }
-    
-    if((tls_ret = mbedtls_client_init(session->tls_session, (void *)pers, strlen(pers))) < 0)
-    {
-        LOG_E("initialize tls client failed return: -0x%x.", -tls_ret);
-        return -WEBCLIENT_ERROR;
-    }
-    
-    return WEBCLIENT_OK;
-}   
-#endif
 
 struct webclient_session *webclient_open(const char *URI)
 {
@@ -913,6 +897,14 @@ struct webclient_session *webclient_open_header(const char *URI, int method,
     return session;
 }
 
+/**
+ * set receive and send data timeout.
+ *
+ * @param session http session
+ * @param millisecond timeout millisecond
+ *
+ * @return 0: set timeout success
+ */
 int webclient_set_timeout(struct webclient_session *session, int millisecond)
 {
     struct timeval timeout;
@@ -974,6 +966,17 @@ static int webclient_next_chunk(struct webclient_session *session)
     return session->chunk_sz;
 }
 
+/**
+ *  read data from http server.
+ *
+ * @param session http session
+ * @param buffer read buffer
+ * @param length the maximum of read buffer size
+ *
+ * @return <0: read data error
+ *         =0: http server disconnect
+ *         >0: successfully read data length
+ */
 int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t length)
 {
     int bytes_read = 0;
@@ -995,7 +998,7 @@ int webclient_read(struct webclient_session *session, unsigned char *buffer, siz
     /* which is transfered as chunk mode */
     if (session->chunk_sz)
     {
-        if (length > ((int) session->chunk_sz - session->chunk_offset))
+        if ((int) length > (session->chunk_sz - session->chunk_offset))
         {
             length = session->chunk_sz - session->chunk_offset;
         }
@@ -1088,6 +1091,17 @@ int webclient_read(struct webclient_session *session, unsigned char *buffer, siz
     return total_read;
 }
 
+/**
+ *  write data to http server.
+ *
+ * @param session http session
+ * @param buffer write buffer
+ * @param length write buffer size
+ *
+ * @return <0: write data error
+ *         =0: http server disconnect
+ *         >0: successfully write data length
+ */
 int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t length)
 {
     int bytes_write = 0;
@@ -1113,7 +1127,7 @@ int webclient_write(struct webclient_session *session, const unsigned char *buff
         if (bytes_write <= 0)
         {
 #ifdef WEBCLIENT_USING_TLS
-            if(session->tls_session && bytesWrite == MBEDTLS_ERR_SSL_WANT_WRITE)
+            if(session->tls_session && bytes_write == MBEDTLS_ERR_SSL_WANT_WRITE)
                 continue;
 #endif
             if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -1148,8 +1162,12 @@ int webclient_write(struct webclient_session *session, const unsigned char *buff
     return total_write;
 }
 
-/*
+/**
  * close a webclient client session.
+ *
+ * @param session http client session
+ *
+ * @return 0: close success
  */
 int webclient_close(struct webclient_session *session)
 {
@@ -1163,29 +1181,43 @@ int webclient_close(struct webclient_session *session)
     else
     {
         if (session->socket >= 0)
+        {
             closesocket(session->socket); 
+            session->socket = -1;
+        }
     }
 #else
     if (session->socket >= 0)
-        closesocket(session->socket); 
+    {
+        closesocket(session->socket);
+        session->socket = -1;
+    }
 #endif
+
     if(session->transfer_encoding)
-        web_free(session->transfer_encoding);    
+        web_free(session->transfer_encoding);
+
     if(session->content_type)
         web_free(session->content_type);
+
     if(session->last_modified)
         web_free(session->last_modified);
+
     if(session->host)
         web_free(session->host);
+
     if(session->request)
         web_free(session->request);
+
     if(session->location)
         web_free(session->location);
+
     if(session)
     {
         web_free(session);
         session = RT_NULL;
     }
+
     return 0;
 }
 

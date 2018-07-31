@@ -41,29 +41,29 @@
 #undef DBG_ENABLE
 
 #define DBG_ENABLE
-#define DBG_SECTION_NAME     "WEB "
+#define DBG_SECTION_NAME               "WEB"
 #ifdef WEBCLIENT_DEBUG
-#define DBG_LEVEL            DBG_LOG
+#define DBG_LEVEL                      DBG_LOG
 #else
-#define DBG_LEVEL            DBG_INFO
+#define DBG_LEVEL                      DBG_INFO
 #endif /* WEBCLIENT_DEBUG */
 #define DBG_COLOR
 #include <rtdbg.h>
 
 #ifndef web_malloc
-#define web_malloc           rt_malloc
+#define web_malloc                     rt_malloc
 #endif
 
 #ifndef web_calloc
-#define web_calloc           rt_calloc
+#define web_calloc                     rt_calloc
 #endif
 
 #ifndef web_realloc
-#define web_realloc          rt_realloc
+#define web_realloc                    rt_realloc
 #endif
 
 #ifndef web_free
-#define web_free             rt_free
+#define web_free                       rt_free
 #endif
 
 #ifndef WEBCLIENT_HEADER_BUFSZ
@@ -89,7 +89,6 @@ enum WEBCLIENT_STATUS
     WEBCLIENT_CONNECT_FAILED,
     WEBCLIENT_DISCONNECT,
     WEBCLIENT_FILE_ERROR,
-
 };
 
 enum WEBCLIENT_METHOD
