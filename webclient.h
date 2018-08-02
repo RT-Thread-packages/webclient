@@ -139,15 +139,24 @@ struct webclient_session
     /* remainder of content reading */
     size_t content_length_remainder;
     
+    int header_sz;
+    int resp_sz;
+
 #ifdef WEBCLIENT_USING_TLS
         /* mbedtls connect session */
         MbedTLSSession *tls_session;
 #endif
 };
 
-struct webclient_session *webclient_open(const char *URI);
-struct webclient_session *webclient_open_position(const char *URI, int position);
-struct webclient_session *webclient_open_header(const char *URI, int method, const char *header, size_t header_sz);
+struct webclient_session *webclient_create(size_t header_sz, size_t resp_sz);
+
+int webclient_get(struct webclient_session *session, const char *URI, const char *header);
+int webclient_get_position(struct webclient_session *session, const char *URI, int position);
+
+int webclient_post(struct webclient_session *session, const char *URI,
+        const char *header, const char *post_data);
+int webclient_post_header(struct webclient_session *session, const char *URI, const char *header);
+
 int webclient_close(struct webclient_session *session);
 
 int webclient_set_timeout(struct webclient_session *session, int millisecond);
@@ -155,21 +164,8 @@ int webclient_set_timeout(struct webclient_session *session, int millisecond);
 int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t size);
 int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);
 
-int webclient_send_header(struct webclient_session *session, int method,
-                          const char *header, size_t header_sz);
-int webclient_connect(struct webclient_session *session, const char *URI);
-int webclient_handle_response(struct webclient_session *session);
-
-/* hight level APIs for HTTP client */
 int webclient_response(struct webclient_session *session, void **response);
-struct webclient_session *webclient_open_custom(const char *URI, int method,
-        const char *header, size_t header_sz,
-        const char *data, size_t data_sz);
-
-int webclient_transfer(const char *URI, const char *header, size_t header_sz,
-                       const char *data, size_t data_sz,
-                       char *result, size_t result_sz);
-
+int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **result);
 
 #ifdef RT_USING_DFS
 int webclient_get_file(const char *URI, const char *filename);

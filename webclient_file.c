@@ -38,14 +38,14 @@ int webclient_get_file(const char* URI, const char* filename)
     unsigned char *ptr = RT_NULL;
     struct webclient_session* session = RT_NULL;
 
-    session = webclient_open(URI);
-    if (session == RT_NULL)
+    session = webclient_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+    if(session == RT_NULL)
     {
-        LOG_E("get file failed, open URI(%s) error.", URI);
-        rc = -WEBCLIENT_FILE_ERROR;
+        rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
-    if (session->response != 200)
+
+    if (webclient_get(session, URI, RT_NULL) != 200)
     {
         LOG_E("get file failed, wrong response: %d.", session->response);
         rc = -WEBCLIENT_ERROR;
@@ -60,7 +60,7 @@ int webclient_get_file(const char* URI, const char* filename)
         goto __exit;
     }
 
-    ptr = (rt_uint8_t *) web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
+    ptr = (unsigned char *) web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
     if (ptr == RT_NULL)
     {
         LOG_E("get file failed, no memory for response buffer.");
@@ -162,20 +162,6 @@ int webclient_post_file(const char* URI, const char* filename,
         goto __exit;
     }
 
-    session = (struct webclient_session*) web_calloc(1, sizeof(struct webclient_session));
-    if (!session)
-    {
-        LOG_D("post file failed, no memory for session.");
-        rc = -WEBCLIENT_NOMEM;
-        goto __exit;
-    }
-
-    rc = webclient_connect(session, URI);
-    if (rc < 0)
-    {
-        goto __exit;
-    }
-
     header = (char *) web_malloc(WEBCLIENT_HEADER_BUFSZ);
     if (header == RT_NULL)
     {
@@ -210,9 +196,16 @@ int webclient_post_file(const char* URI, const char* filename,
     header_ptr += rt_snprintf(header_ptr,
             WEBCLIENT_HEADER_BUFSZ - (header_ptr - header),
             "Content-Type: multipart/form-data; boundary=%s\r\n", boundary);
-    /* send header */
-    rc = webclient_send_header(session, WEBCLIENT_POST, header, header_ptr - header);
-    if (rc < 0)
+
+    session = webclient_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+    if(session == RT_NULL)
+    {
+        rc = -WEBCLIENT_NOMEM;
+        goto __exit;
+    }
+
+    rc = webclient_post_header(session, URI, header);
+    if( rc< 0)
     {
         goto __exit;
     }
