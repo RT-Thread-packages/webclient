@@ -1,6 +1,6 @@
 /*
- * File      : webclient.h
- * COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
+ *  File      : webclient.h
+ *  COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -160,8 +160,8 @@ int webclient_read(struct webclient_session *session, unsigned char *buffer, siz
 int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);
 
 /* send HTTP POST/GET request, and get response data */
-int webclient_response(struct webclient_session *session, void **response);
-int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **result);
+int webclient_response(struct webclient_session *session, unsigned char **response);
+int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response);
 
 #ifdef RT_USING_DFS
 /* file related operations */

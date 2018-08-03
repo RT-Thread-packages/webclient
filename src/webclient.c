@@ -1,6 +1,6 @@
 /*
- * File      : webclient.c
- * COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
+ *  File      : webclient.c
+ *  COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include "webclient.h"
+#include <webclient.h>
 
 #if defined(RT_USING_DFS_NET) || defined(SAL_USING_POSIX)
 #include <netdb.h>
@@ -407,7 +407,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     rc = webclient_resolve_address(session, &res, URI, &request);
     if (rc != WEBCLIENT_OK)
     {
-        LOG_E("connect failed, resolve address error.");
+        LOG_E("connect failed, resolve address error(%d).", rc);
         goto __exit;
     }
 
@@ -1318,7 +1318,7 @@ int webclient_close(struct webclient_session *session)
  *
  * @return response data size
  */
-int webclient_response(struct webclient_session *session, void **response)
+int webclient_response(struct webclient_session *session, unsigned char **response)
 {
     unsigned char *buf_ptr;
     unsigned char *response_buf = 0;
@@ -1447,7 +1447,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
             goto __exit;
         }
 
-        totle_length = webclient_response(session, (void **)response);
+        totle_length = webclient_response(session, response);
         if(totle_length <= 0)
         {
             rc = -WEBCLIENT_ERROR;
