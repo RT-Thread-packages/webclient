@@ -321,7 +321,177 @@ __exit:
     return rc;
 }
 
-int webclient_send_header(struct webclient_session *session, int method,
+#ifdef WEBCLIENT_USING_TLS
+/**
+ * create and initialize https session.
+ *
+ * @param session webclient session
+ * @param URI input server URI address
+ *
+ * @return <0: create failed, no memory or other errors
+ *         =0: success
+ */
+static int webclient_open_tls(struct webclient_session *session, const char *URI)
+{
+    int tls_ret = 0;
+    const char *pers = "webclient";
+
+    RT_ASSERT(session);
+
+    session->tls_session = (MbedTLSSession *) web_calloc(1, sizeof(MbedTLSSession));
+    if (session->tls_session == RT_NULL)
+    {
+        return -WEBCLIENT_NOMEM;
+    }
+
+    session->tls_session->buffer_len = session->resp_sz;
+    session->tls_session->buffer = web_malloc(session->tls_session->buffer_len);
+    if(session->tls_session->buffer == RT_NULL)
+    {
+        LOG_E("no memory for tls_session buffer!");
+        return -WEBCLIENT_ERROR;
+    }
+
+    if((tls_ret = mbedtls_client_init(session->tls_session, (void *)pers, strlen(pers))) < 0)
+    {
+        LOG_E("initialize https client failed return: -0x%x.", -tls_ret);
+        return -WEBCLIENT_ERROR;
+    }
+
+    return WEBCLIENT_OK;
+}
+#endif
+
+/**
+ * connect to http server.
+ *
+ * @param session webclient session
+ * @param URI the input server URI address
+ *
+ * @return <0: connect failed or other error
+ *         =0: connect success
+ */
+static int webclient_connect(struct webclient_session *session, const char *URI)
+{
+    int rc = WEBCLIENT_OK;
+    int socket_handle;
+    struct timeval timeout;
+    struct addrinfo *res = RT_NULL;
+    char *request;
+
+    RT_ASSERT(session);
+    RT_ASSERT(URI);
+
+    /* initialize the socket of session */
+    session->socket = -1;
+
+    timeout.tv_sec = WEBCLIENT_DEFAULT_TIMEO;
+    timeout.tv_usec = 0;
+
+    if(strncmp(URI, "https://", 8) == 0)
+    {
+#ifdef WEBCLIENT_USING_TLS
+        if(webclient_open_tls(session, URI) < 0)
+        {
+           LOG_E("connect failed, https client open URI(%s) failed!", URI);
+           return -WEBCLIENT_ERROR;
+        }
+#else
+        LOG_E("not support https connect, please enable webclient https configure!");
+        rc = -WEBCLIENT_ERROR;
+        goto __exit;
+#endif
+    }
+
+    /* Check valid IP address and URL */
+    rc = webclient_resolve_address(session, &res, URI, &request);
+    if (rc != WEBCLIENT_OK)
+    {
+        LOG_E("connect failed, resolve address error.");
+        goto __exit;
+    }
+
+    if (!res)
+    {
+        rc = -WEBCLIENT_ERROR;
+        goto __exit;
+    }
+
+    /* copy host address */
+    if (*request)
+    {
+        session->request = web_strdup(request);
+    }
+
+#ifdef WEBCLIENT_USING_TLS
+    if(session->tls_session)
+    {
+       int tls_ret = 0;
+
+        if((tls_ret = mbedtls_client_context(session->tls_session)) < 0)
+        {
+            LOG_E("connect failed, https client context return: -0x%x", -tls_ret);
+            return -WEBCLIENT_ERROR;
+        }
+
+        if((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
+        {
+            LOG_E("connect failed, https client connect return: -0x%x", -tls_ret);
+            rc = -WEBCLIENT_CONNECT_FAILED;
+            goto __exit;
+        }
+
+        socket_handle = session->tls_session->server_fd.fd;
+
+        /* set recv timeout option */
+        setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void*) &timeout,
+                sizeof(timeout));
+        setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void*) &timeout,
+                sizeof(timeout));
+
+        session->socket = socket_handle;
+
+        rc = WEBCLIENT_OK;
+        goto __exit;
+    }
+#endif
+
+    {
+        socket_handle = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP);
+        if (socket_handle < 0)
+        {
+            LOG_E("connect failed, create socket(%d) error.", socket_handle);
+            rc = -WEBCLIENT_NOSOCKET;
+            goto __exit;
+        }
+
+        /* set receive and send timeout option */
+        setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void *) &timeout,
+                   sizeof(timeout));
+        setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void *) &timeout,
+                   sizeof(timeout));
+
+        if (connect(socket_handle, res->ai_addr, res->ai_addrlen) != 0)
+        {
+            /* connect failed */
+            LOG_E("connect failed, connect socket(%d) error.", socket_handle);
+            rc = -WEBCLIENT_CONNECT_FAILED;
+            goto __exit;
+        }
+
+        session->socket = socket_handle;
+    }
+
+__exit:
+    if (res)
+    {
+        freeaddrinfo(res);
+    }
+
+    return rc;
+}
+
+static int webclient_send_header(struct webclient_session *session, int method,
                           const char *header, size_t header_sz)
 {
     int rc = WEBCLIENT_OK;
@@ -439,7 +609,7 @@ __exit:
 /**
  * resolve server response data.
  *
- * @param session http session
+ * @param session webclient session
  *
  * @return <0: resolve response data failed
  *         =0: success
@@ -570,177 +740,15 @@ int webclient_handle_response(struct webclient_session *session)
     return session->response;
 }
 
-#ifdef WEBCLIENT_USING_TLS
 /**
- * create and initialize https session.
+ * create webclient session, set maximum header and response size
  *
- * @param session http session
- * @param URI the input server URI address
+ * @param header_sz maximum send header size
+ * @param resp_sz maximum response data size
  *
- * @return <0: create failed, no memory or other errors
- *         =0: success
+ * @return  webclient session structure
  */
-static int webclient_open_tls(struct webclient_session *session, const char *URI)
-{
-    int tls_ret = 0;
-    const char *pers = "webclient";
-
-    RT_ASSERT(session);
-
-    session->tls_session = (MbedTLSSession *) web_calloc(1, sizeof(MbedTLSSession));
-    if (session->tls_session == RT_NULL)
-    {
-        return -WEBCLIENT_NOMEM;
-    }
-
-    session->tls_session->buffer_len = session->resp_sz;
-    session->tls_session->buffer = web_malloc(session->tls_session->buffer_len);
-    if(session->tls_session->buffer == RT_NULL)
-    {
-        LOG_E("no memory for tls_session buffer!");
-        return -WEBCLIENT_ERROR;
-    }
-    
-    if((tls_ret = mbedtls_client_init(session->tls_session, (void *)pers, strlen(pers))) < 0)
-    {
-        LOG_E("initialize https client failed return: -0x%x.", -tls_ret);
-        return -WEBCLIENT_ERROR;
-    }
-    
-    return WEBCLIENT_OK;
-}   
-#endif
-
-/**
- * connect to http server.
- *
- * @param session http session
- * @param URI the input server URI address
- *
- * @return <0: connect failed or other error
- *         =0: connect success
- */
-int webclient_connect(struct webclient_session *session, const char *URI)
-{
-    int rc = WEBCLIENT_OK;
-    int socket_handle;
-    struct timeval timeout;
-    struct addrinfo *res = RT_NULL;
-    char *request;
-
-    RT_ASSERT(session);
-    RT_ASSERT(URI);
-
-    /* initialize the socket of session */
-    session->socket = -1;
-    
-    timeout.tv_sec = WEBCLIENT_DEFAULT_TIMEO;
-    timeout.tv_usec = 0;
-    
-    if(strncmp(URI, "https://", 8) == 0)
-    {
-#ifdef WEBCLIENT_USING_TLS
-        if(webclient_open_tls(session, URI) < 0)
-        {   
-           LOG_E("connect failed, https client open URI(%s) failed!", URI);
-           return -WEBCLIENT_ERROR;
-        }
-#else
-        LOG_E("not support https connect, please enable webclient https configure!");
-        rc = -WEBCLIENT_ERROR;
-        goto __exit;
-#endif
-    }
-
-    /* Check valid IP address and URL */
-    rc = webclient_resolve_address(session, &res, URI, &request);
-    if (rc != WEBCLIENT_OK)
-    {
-        LOG_E("connect failed, resolve address error.");
-        goto __exit;
-    }
-
-    if (!res)
-    {
-        rc = -WEBCLIENT_ERROR;
-        goto __exit;
-    }
-
-    /* copy host address */
-    if (*request)
-    {
-        session->request = web_strdup(request);
-    }
-
-#ifdef WEBCLIENT_USING_TLS
-    if(session->tls_session)
-    {
-       int tls_ret = 0;
-
-        if((tls_ret = mbedtls_client_context(session->tls_session)) < 0)
-        {
-            LOG_E("connect failed, https client context return: -0x%x", -tls_ret);
-            return -WEBCLIENT_ERROR;
-        }
-        
-        if((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
-        {
-            LOG_E("connect failed, https client connect return: -0x%x", -tls_ret);
-            rc = -WEBCLIENT_CONNECT_FAILED;
-            goto __exit;
-        }
-        
-        socket_handle = session->tls_session->server_fd.fd;
-
-        /* set recv timeout option */
-        setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void*) &timeout,
-                sizeof(timeout));
-        setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void*) &timeout,
-                sizeof(timeout));
-
-        session->socket = socket_handle;
-
-        rc = WEBCLIENT_OK;
-        goto __exit;
-    }
-#endif
-
-    {       
-        socket_handle = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP);
-        if (socket_handle < 0)
-        {
-            LOG_E("connect failed, create socket(%d) error.", socket_handle);
-            rc = -WEBCLIENT_NOSOCKET;
-            goto __exit;
-        }
-
-        /* set receive and send timeout option */
-        setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (void *) &timeout,
-                   sizeof(timeout));
-        setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (void *) &timeout,
-                   sizeof(timeout));
-
-        if (connect(socket_handle, res->ai_addr, res->ai_addrlen) != 0)
-        {
-            /* connect failed */
-            LOG_E("connect failed, connect socket(%d) error.", socket_handle);
-            rc = -WEBCLIENT_CONNECT_FAILED;
-            goto __exit;
-        }
-
-        session->socket = socket_handle;
-    }
-
-__exit:
-    if (res)
-    {
-        freeaddrinfo(res);
-    }
-
-    return rc;
-}
-
-struct webclient_session *webclient_create(size_t header_sz, size_t resp_sz)
+struct webclient_session *webclient_session_create(size_t header_sz, size_t resp_sz)
 {
     struct webclient_session *session;
 
@@ -758,6 +766,18 @@ struct webclient_session *webclient_create(size_t header_sz, size_t resp_sz)
     return session;
 }
 
+/**
+ *  send GET request to http server and get response header.
+ *
+ * @param session webclient session
+ * @param URI input server URI address
+ * @param header GET request header
+ *             = NULL: use default header data
+ *            != NULL: use custom header data
+ *
+ * @return <0: send GET request failed
+ *         >0: response http status code
+ */
 int webclient_get(struct webclient_session *session, const char *URI, const char *header)
 {
     int rc = WEBCLIENT_OK;
@@ -816,6 +836,16 @@ __exit:
     return session->response;
 }
 
+/**
+ *  http breakpoint resume.
+ *
+ * @param session webclient session
+ * @param URI input server URI address
+ * @param position last downloaded position
+ *
+ * @return <0: send GET request failed
+ *         >0: response http status code
+ */
 int webclient_get_position(struct webclient_session *session, const char *URI, int position)
 {
     char *range_header = RT_NULL;
@@ -827,7 +857,6 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
     rc = webclient_connect(session, URI);
     if (rc != WEBCLIENT_OK)
     {
-        /* connect to webclient server failed. */
         goto __exit;
     }
 
@@ -846,7 +875,6 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
     rc = webclient_send_header(session, WEBCLIENT_GET, range_header, strlen(range_header));
     if (rc != WEBCLIENT_OK)
     {
-        /* send header to webclient server failed. */
         goto __exit;
     }
 
@@ -892,18 +920,27 @@ __exit:
     return session->response;
 }
 
-int webclient_post_header(struct webclient_session *session, const char *URI, const char *header)
+/**
+ * send POST request to server and get response header data.
+ *
+ * @param session webclient session
+ * @param URI input server URI address
+ * @param header POST request header, can't be empty
+ * @param post_data data sent to the server
+ *                = NULL: just connect server and send header
+ *               != NULL: send header and body data, resolve response data
+ *
+ * @return <0: send POST request failed
+ *         =0: send POST header success
+ *         >0: response http status code
+ */
+int webclient_post(struct webclient_session *session, const char *URI,
+        const char *header, const char *post_data)
 {
     int rc = WEBCLIENT_OK;
 
     RT_ASSERT(session);
     RT_ASSERT(URI);
-
-    if(header == RT_NULL)
-    {
-        LOG_E("http post request input header data cannot be empty!");
-        return RT_NULL;
-    }
 
     rc = webclient_connect(session, URI);
     if (rc != WEBCLIENT_OK)
@@ -919,35 +956,24 @@ int webclient_post_header(struct webclient_session *session, const char *URI, co
         goto __exit;
     }
 
-__exit:
-    return rc;
-}
-
-int webclient_post(struct webclient_session *session, const char *URI,
-        const char *header, const char *post_data)
-{
-    int rc = WEBCLIENT_OK;
-
-    RT_ASSERT(session);
-    RT_ASSERT(URI);
-    RT_ASSERT(post_data);
-
-    rc = webclient_post_header(session, URI, header);
-    if (rc != WEBCLIENT_OK)
+    if(post_data)
     {
-        goto __exit;
-    }
+        webclient_write(session, (unsigned char *)post_data, strlen(post_data));
 
-    webclient_write(session, (const unsigned char *)post_data, strlen(post_data));
-
-    rc = webclient_handle_response(session);
-    if (rc > 0)
-    {
-        if (session->response != 200)
+        /* resolve response data, get http status code */
+        rc = webclient_handle_response(session);
+        if (rc > 0)
         {
-            LOG_E("post failed, handle response(%d) error.", session->response);
-            goto __exit;
+            if (session->response != 200)
+            {
+                LOG_E("post failed, handle response(%d) error.", session->response);
+                goto __exit;
+            }
         }
+    }
+    else
+    {
+        return rc;
     }
 
 __exit:
@@ -1284,6 +1310,14 @@ int webclient_close(struct webclient_session *session)
     return 0;
 }
 
+/**
+ * get wenclient request response data.
+ *
+ * @param session wenclient session
+ * @param response response buffer address
+ *
+ * @return response data size
+ */
 int webclient_response(struct webclient_session *session, void **response)
 {
     unsigned char *buf_ptr;
@@ -1363,8 +1397,22 @@ int webclient_response(struct webclient_session *session, void **response)
     return total_read;
 }
 
-
-int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **result)
+/**
+ *  send request(GET/POST) to server and get response data.
+ *
+ * @param URI input server address
+ * @param header send header data
+ *             = NULL: use default header data, must be GET request
+ *            != NULL: user custom header data, GET or POST request
+ * @param post_data data sent to the server
+ *             = NULL: it is GET request
+ *            != NULL: it is POST request
+ * @param response response buffer address
+ *
+ * @return <0: request failed
+ *        >=0: response buffer size
+ */
+int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response)
 {
     struct webclient_session *session;
     int rc = WEBCLIENT_OK;
@@ -1378,7 +1426,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
         return -WEBCLIENT_ERROR;
     }
 
-    if(post_data == RT_NULL && result == RT_NULL)
+    if(post_data == RT_NULL && response == RT_NULL)
     {
         LOG_E("request get failed, get response data cannot be empty.");
         return -WEBCLIENT_ERROR;
@@ -1386,7 +1434,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 
     if(post_data == RT_NULL)
     {
-        session = webclient_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+        session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
         if(session == RT_NULL)
         {
             rc = -WEBCLIENT_NOMEM;
@@ -1399,7 +1447,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
             goto __exit;
         }
 
-        totle_length = webclient_response(session, (void **)result);
+        totle_length = webclient_response(session, (void **)response);
         if(totle_length <= 0)
         {
             rc = -WEBCLIENT_ERROR;
@@ -1408,7 +1456,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
     }
     else
     {
-        session = webclient_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+        session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
         if(session == RT_NULL)
         {
             rc = -WEBCLIENT_NOMEM;

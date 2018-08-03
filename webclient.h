@@ -73,17 +73,8 @@
 #define WEBCLIENT_SW_VERSION           "2.0.0"
 #define WEBCLIENT_SW_VERSION_NUM       0x20000
 
-#ifndef WEBCLIENT_HEADER_BUFSZ
 #define WEBCLIENT_HEADER_BUFSZ         4096
-#endif
-
-#ifndef WEBCLIENT_RESPONSE_BUFSZ
 #define WEBCLIENT_RESPONSE_BUFSZ       4096
-#endif
-
-#if defined(WEBCLIENT_USING_TLS) && !defined(WEBCLIENT_TLS_READ_BUFFER)
-#define WEBCLIENT_TLS_READ_BUFFER      4096
-#endif
 
 enum WEBCLIENT_STATUS
 {
@@ -148,26 +139,32 @@ struct webclient_session
 #endif
 };
 
-struct webclient_session *webclient_create(size_t header_sz, size_t resp_sz);
+/* create webclient session and set header response size */
+struct webclient_session *webclient_session_create(size_t header_sz, size_t resp_sz);
 
+/* send HTTP GET request */
 int webclient_get(struct webclient_session *session, const char *URI, const char *header);
 int webclient_get_position(struct webclient_session *session, const char *URI, int position);
 
+/* send HTTP POST request */
 int webclient_post(struct webclient_session *session, const char *URI,
         const char *header, const char *post_data);
-int webclient_post_header(struct webclient_session *session, const char *URI, const char *header);
 
+/* close and release wenclient session */
 int webclient_close(struct webclient_session *session);
 
 int webclient_set_timeout(struct webclient_session *session, int millisecond);
 
+/* send or receive data from server */
 int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t size);
 int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);
 
+/* send HTTP POST/GET request, and get response data */
 int webclient_response(struct webclient_session *session, void **response);
 int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **result);
 
 #ifdef RT_USING_DFS
+/* file related operations */
 int webclient_get_file(const char *URI, const char *filename);
 int webclient_post_file(const char *URI, const char *filename, const char *form_data);
 #endif

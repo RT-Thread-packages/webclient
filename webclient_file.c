@@ -30,6 +30,15 @@
 #ifdef RT_USING_DFS
 #include <dfs_posix.h>
 
+/**
+ * send GET request and store response data into the file.
+ *
+ * @param URI input server address
+ * @param filename store response date to filename
+ *
+ * @return <0: GET request failed
+ *         =0: success
+ */
 int webclient_get_file(const char* URI, const char* filename)
 {
     int fd = -1, rc = WEBCLIENT_OK;
@@ -38,7 +47,7 @@ int webclient_get_file(const char* URI, const char* filename)
     unsigned char *ptr = RT_NULL;
     struct webclient_session* session = RT_NULL;
 
-    session = webclient_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+    session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
     if(session == RT_NULL)
     {
         rc = -WEBCLIENT_NOMEM;
@@ -132,6 +141,16 @@ __exit:
     return rc;
 }
 
+/**
+ * post file to http server.
+ *
+ * @param URI input server address
+ * @param filename post data filename
+ * @param form_data  form data
+ *
+ * @return <0: POST request failed
+ *         =0: success
+ */
 int webclient_post_file(const char* URI, const char* filename,
         const char* form_data)
 {
@@ -197,14 +216,14 @@ int webclient_post_file(const char* URI, const char* filename,
             WEBCLIENT_HEADER_BUFSZ - (header_ptr - header),
             "Content-Type: multipart/form-data; boundary=%s\r\n", boundary);
 
-    session = webclient_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+    session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
     if(session == RT_NULL)
     {
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
 
-    rc = webclient_post_header(session, URI, header);
+    rc = webclient_post(session, URI, header, NULL);
     if( rc< 0)
     {
         goto __exit;
