@@ -277,7 +277,7 @@ int wget(int argc, char** argv)
 {
     if (argc != 3)
     {
-        LOG_E("wget [URI] [filename]  -get file by URI.");
+        rt_kprintf("wget [URI] [filename] - get file by URI.");
         return -1;
     }
 
@@ -287,7 +287,7 @@ int wget(int argc, char** argv)
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
-MSH_CMD_EXPORT(wget, web download file);
+MSH_CMD_EXPORT(wget, wget [URI] [filename] - get file by URI.);
 #endif /* FINSH_USING_MSH */
 
 #endif /* RT_USING_DFS */
