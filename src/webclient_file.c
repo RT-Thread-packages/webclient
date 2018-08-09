@@ -46,17 +46,18 @@ int webclient_get_file(const char* URI, const char* filename)
     size_t length, total_length = 0;
     unsigned char *ptr = RT_NULL;
     struct webclient_session* session = RT_NULL;
+    int resp_status = 0, content_length = -1;
 
-    session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+    session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
     if(session == RT_NULL)
     {
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
 
-    if (webclient_get(session, URI, RT_NULL) != 200)
+    if ((resp_status = webclient_get(session, URI)) != 200)
     {
-        LOG_E("get file failed, wrong response: %d.", session->response);
+        LOG_E("get file failed, wrong response: %d.", resp_status);
         rc = -WEBCLIENT_ERROR;
         goto __exit;
     }
@@ -76,8 +77,8 @@ int webclient_get_file(const char* URI, const char* filename)
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
-
-    if (session->content_length == 0)
+	
+    if (session->content_length < 0)
     {
         while (1)
         {
@@ -96,7 +97,7 @@ int webclient_get_file(const char* URI, const char* filename)
     }
     else
     {
-        for (offset = 0; offset < session->content_length;)
+        for (offset = 0; offset < (size_t) session->content_length;)
         {
             length = webclient_read(session, ptr,
                     session->content_length - offset > WEBCLIENT_RESPONSE_BUFSZ ?
@@ -216,14 +217,16 @@ int webclient_post_file(const char* URI, const char* filename,
             WEBCLIENT_HEADER_BUFSZ - (header_ptr - header),
             "Content-Type: multipart/form-data; boundary=%s\r\n", boundary);
 
-    session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ, WEBCLIENT_RESPONSE_BUFSZ);
+    session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
     if(session == RT_NULL)
     {
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
 
-    rc = webclient_post(session, URI, header, NULL);
+    session->header->buffer = web_strdup(header);
+
+    rc = webclient_post(session, URI, NULL);
     if( rc< 0)
     {
         goto __exit;

@@ -37,32 +37,32 @@ int webclient_post_test(int argc, char **argv)
 {
     struct webclient_session* session = RT_NULL;
     unsigned char *buffer = RT_NULL;
-    char *header = RT_NULL;
     char *URI = RT_NULL;
     int index, ret = 0;
-    int bytes_read;
+    int bytes_read, resp_status;
 
     if (argc == 1)
     {
         URI = web_strdup(POST_LOCAL_URI);
+        if(URI == RT_NULL)
+        {
+            LOG_E("no memory for create URI buffer.");
+            return -1;
+        }
     }
     else if (argc == 2)
     {
         URI = web_strdup(argv[1]);
+        if(URI == RT_NULL)
+        {
+            LOG_E("no memory for create URI buffer.");
+            return -1;
+        }
     }
     else
     {
         LOG_E("webclient_post_test [URI]  - webclient POST request test.");
         return -1;
-    }
-
-    header = (char *) web_malloc(POST_HEADER_BUFSZ);
-    if (header == RT_NULL)
-    {
-        LOG_E("no memory for header data.");
-        ret = -RT_ENOMEM;
-        goto __exit;
-
     }
 
     buffer = (unsigned char *) web_malloc(POST_RESP_BUFSZ);
@@ -74,22 +74,22 @@ int webclient_post_test(int argc, char **argv)
 
     }
 
-    /* build header for upload */
-    rt_snprintf(header, POST_HEADER_BUFSZ, "Content-Length: %d\r\n", strlen(post_data));
-    rt_snprintf(header, POST_HEADER_BUFSZ, "%sContent-Type: application/octet-stream\r\n", header);
-
     /* create webclient session and set header response size */
-    session = webclient_session_create(POST_HEADER_BUFSZ, POST_RESP_BUFSZ);
+    session = webclient_session_create(POST_HEADER_BUFSZ);
     if (session == RT_NULL)
     {
         ret = -RT_ENOMEM;
         goto __exit;
     }
 
+    /* build header for upload */
+    webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
+    webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
+
     /* send POST request by default header */
-    if (webclient_post(session, URI, header, post_data) != 200)
+    if ((resp_status = webclient_post(session, URI, post_data)) != 200)
     {
-        LOG_E("webclient POST request failed, response(%d) error.", session->response);
+        LOG_E("webclient POST request failed, response(%d) error.", resp_status);
         ret = -RT_ERROR;
         goto __exit;
     }
@@ -120,11 +120,6 @@ __exit:
     if (buffer)
     {
         web_free(buffer);
-    }
-
-    if (header)
-    {
-        web_free(header);
     }
 
     if (URI)

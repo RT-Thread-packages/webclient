@@ -24,8 +24,8 @@
 #include <rtthread.h>
 #include <webclient.h>
 
-#define GET_RESP_BUFSZ                 1024
 #define GET_HEADER_BUFSZ               1024
+#define GET_RESP_BUFSZ                 1024
 
 #define GET_LOCAL_URI                  "http://www.rt-thread.com/service/rt-thread.txt"
 
@@ -35,15 +35,26 @@ int webclient_get_test(int argc, char **argv)
     unsigned char *buffer = RT_NULL;
     char *URI = RT_NULL;
     int index, ret = 0;
-    int bytes_read;
+    int bytes_read, resp_status;
+    int content_length = -1;
 
     if (argc == 1)
     {
         URI = web_strdup(GET_LOCAL_URI);
+        if(URI == RT_NULL)
+        {
+            LOG_E("no memory for create URI buffer.");
+            return -1;
+        }
     }
     else if (argc == 2)
     {
         URI = web_strdup(argv[1]);
+        if(URI == RT_NULL)
+        {
+            LOG_E("no memory for create URI buffer.");
+            return -1;
+        }
     }
     else
     {
@@ -51,7 +62,7 @@ int webclient_get_test(int argc, char **argv)
         return -1;
     }
 
-    buffer = (unsigned char *) web_malloc(GET_RESP_BUFSZ);
+    buffer = (unsigned char *) web_malloc(GET_HEADER_BUFSZ);
     if (buffer == RT_NULL)
     {
         LOG_E("no memory for receive buffer.");
@@ -61,7 +72,7 @@ int webclient_get_test(int argc, char **argv)
     }
 
     /* create webclient session and set header response size */
-    session = webclient_session_create(GET_HEADER_BUFSZ, GET_RESP_BUFSZ);
+    session = webclient_session_create(GET_HEADER_BUFSZ);
     if (session == RT_NULL)
     {
         ret = -RT_ENOMEM;
@@ -69,16 +80,21 @@ int webclient_get_test(int argc, char **argv)
     }
 
     /* send GET request by default header */
-    if (webclient_get(session, URI, NULL) != 200)
+    if ((resp_status = webclient_get(session, URI)) != 200)
     {
-        LOG_E("webclient GET request failed, response(%d) error.", session->response);
+        LOG_E("webclient GET request failed, response(%d) error.", resp_status);
         ret = -RT_ERROR;
         goto __exit;
     }
 
     LOG_I("webclient GET request response data :");
 
-    if (session->content_length < 0)
+    if(webclient_header_fields_get(session, "Content-Length"))
+    {
+        content_length = atoi(webclient_header_fields_get(session, "Content-Length"));
+    }
+
+    if (content_length < 0)
     {
         LOG_D("The webclient GET request type is chunked.");
         do
@@ -100,7 +116,6 @@ int webclient_get_test(int argc, char **argv)
     else
     {
         int content_pos = 0;
-        int content_length = session->content_length;
 
         do
         {
@@ -142,5 +157,5 @@ __exit:
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
-MSH_CMD_EXPORT_ALIAS(webclient_get_test, web_get_test, web_get_test [URI]  - webclient GET request test.);
+MSH_CMD_EXPORT_ALIAS(webclient_get_test, web_get_test, web_get_test [URI]  webclient GET request test);
 #endif /* FINSH_USING_MSH */
