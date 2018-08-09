@@ -46,7 +46,7 @@ int webclient_post_test(int argc, char **argv)
         URI = web_strdup(POST_LOCAL_URI);
         if(URI == RT_NULL)
         {
-            LOG_E("no memory for create URI buffer.");
+            rt_kprintf("no memory for create URI buffer.\n");
             return -1;
         }
     }
@@ -55,20 +55,20 @@ int webclient_post_test(int argc, char **argv)
         URI = web_strdup(argv[1]);
         if(URI == RT_NULL)
         {
-            LOG_E("no memory for create URI buffer.");
+            rt_kprintf("no memory for create URI buffer.\n");
             return -1;
         }
     }
     else
     {
-        LOG_E("webclient_post_test [URI]  - webclient POST request test.");
+        rt_kprintf("webclient_post_test [URI]  - webclient POST request test.\n");
         return -1;
     }
 
     buffer = (unsigned char *) web_malloc(POST_RESP_BUFSZ);
     if (buffer == RT_NULL)
     {
-        LOG_E("no memory for receive response buffer.");
+        rt_kprintf("no memory for receive response buffer.\n");
         ret = -RT_ENOMEM;
         goto __exit;
 
@@ -89,7 +89,7 @@ int webclient_post_test(int argc, char **argv)
     /* send POST request by default header */
     if ((resp_status = webclient_post(session, URI, post_data)) != 200)
     {
-        LOG_E("webclient POST request failed, response(%d) error.", resp_status);
+        rt_kprintf("webclient POST request failed, response(%d) error.\n", resp_status);
         ret = -RT_ERROR;
         goto __exit;
     }

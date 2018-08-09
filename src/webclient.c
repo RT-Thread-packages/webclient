@@ -340,7 +340,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     int socket_handle;
     struct timeval timeout;
     struct addrinfo *res = RT_NULL;
-    char *request;
+    char *req_url;
 
     RT_ASSERT(session);
     RT_ASSERT(URI);
@@ -367,7 +367,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     }
 
     /* Check valid IP address and URL */
-    rc = webclient_resolve_address(session, &res, URI, &request);
+    rc = webclient_resolve_address(session, &res, URI, &req_url);
     if (rc != WEBCLIENT_OK)
     {
         LOG_E("connect failed, resolve address error(%d).", rc);
@@ -381,9 +381,9 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     }
 
     /* copy host address */
-    if (*request)
+    if (*req_url)
     {
-        session->request = web_strdup(request);
+        session->req_url = web_strdup(req_url);
     }
 
 #ifdef WEBCLIENT_USING_TLS
@@ -460,7 +460,7 @@ __exit:
  * @param session webclient session
  * @param fmt fields format
  *
- * @return >0: Number of successfully added
+ * @return >0: data length of successfully added
  *         <0: not enough header buffer size
  */
 int webclient_header_fields_add(struct webclient_session *session, const char *fmt, ...)
@@ -473,6 +473,11 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
 
     va_start(args, fmt);
     length = rt_vsnprintf(session->header->buffer + session->header->length, session->header->size, fmt, args);
+    if (length < 0)
+    {
+        LOG_E("add fields header data failed, return length(%d) error.", length);
+        return -WEBCLIENT_ERROR;
+    }
     va_end(args);
 
     session->header->length += length;
@@ -493,10 +498,10 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
  * @param session webclient session
  * @param fields fields keyword
  *
- * @return = NULL: get fields data filed
+ * @return = NULL: get fields data failed
  *        != NULL: success get fields data
  */
-char *webclient_header_fields_get(struct webclient_session *session, const char *fields)
+const char *webclient_header_fields_get(struct webclient_session *session, const char *fields)
 {
     char *resp_buf = RT_NULL;
     size_t resp_buf_len = 0;
@@ -543,6 +548,8 @@ char *webclient_header_fields_get(struct webclient_session *session, const char 
  */
 int webclient_resp_status_get(struct webclient_session *session)
 {
+    RT_ASSERT(session);
+
     return session->resp_status;
 }
 
@@ -557,7 +564,8 @@ static int webclient_send_header(struct webclient_session *session, int method)
 
     if(session->header->length == 0)
     {
-        webclient_header_fields_add(session, "GET %s HTTP/1.1\r\n", session->request);
+        /* use default header data */
+        webclient_header_fields_add(session, "GET %s HTTP/1.1\r\n", session->req_url);
         webclient_header_fields_add(session, "Host: %s\r\n", session->host);
         webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n\r\n");
 
@@ -567,6 +575,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
     {
         if (method != WEBCLIENT_USER_METHOD)
         {
+            /* check and add fields header data */
             if (memcmp(header, "HTTP/1.", strlen("HTTP/1.")))
             {
                 char *header_buffer = RT_NULL;
@@ -580,12 +589,13 @@ static int webclient_send_header(struct webclient_session *session, int method)
                     goto __exit;
                 }
 
+                /* splice http request header data */
                 if (method == WEBCLIENT_GET)
                     length = rt_snprintf(session->header->buffer, session->header->size, "GET %s HTTP/1.1\r\n%s",
-                            session->request ? session->request : "/", header_buffer);
+                            session->req_url ? session->req_url : "/", header_buffer);
                 else if (method == WEBCLIENT_POST)
                     length = rt_snprintf(session->header->buffer, session->header->size, "POST %s HTTP/1.1\r\n%s",
-                            session->request ? session->request : "/", header_buffer);
+                            session->req_url ? session->req_url : "/", header_buffer);
                 session->header->length = length;
 
                 web_free(header_buffer);
@@ -606,7 +616,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
                 webclient_header_fields_add(session, "Accept: */*\r\n");
             }
 
-            /* append user's header */
+            /* header data end */
             rt_snprintf(session->header->buffer + session->header->length, session->header->size, "\r\n");
             session->header->length += 2;
 
@@ -643,7 +653,7 @@ int webclient_handle_response(struct webclient_session *session)
     int rc = WEBCLIENT_OK;
     char *mime_buffer = RT_NULL;
     char *mime_ptr = RT_NULL;
-    char *transfer_encoding = RT_NULL;
+    const char *transfer_encoding;
     int i;
 
     RT_ASSERT(session);
@@ -716,7 +726,7 @@ int webclient_handle_response(struct webclient_session *session)
         return rc;
     }
 
-    return webclient_resp_status_get(session);
+    return session->resp_status;
 }
 
 /**
@@ -802,7 +812,7 @@ int webclient_get(struct webclient_session *session, const char *URI)
     resp_status = webclient_handle_response(session);
     if (resp_status > 0)
     {
-        char *location = webclient_header_fields_get(session, "Location");
+        const char *location = webclient_header_fields_get(session, "Location");
 
         /* relocation */
         if ((resp_status == 302 || resp_status == 301) && location)
@@ -874,7 +884,7 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
     resp_status = webclient_handle_response(session);
     if (rc > 0)
     {
-        char *location = webclient_header_fields_get(session, "Location");
+        const char *location = webclient_header_fields_get(session, "Location");
 
         /* relocation */
         if ((resp_status == 302 || resp_status == 301) && location)
@@ -1264,8 +1274,8 @@ int webclient_close(struct webclient_session *session)
     if(session->host)
         web_free(session->host);
 
-    if(session->request)
-        web_free(session->request);
+    if(session->req_url)
+        web_free(session->req_url);
 
     if(session->header && session->header->buffer)
     {

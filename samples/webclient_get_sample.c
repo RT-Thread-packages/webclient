@@ -43,7 +43,7 @@ int webclient_get_test(int argc, char **argv)
         URI = web_strdup(GET_LOCAL_URI);
         if(URI == RT_NULL)
         {
-            LOG_E("no memory for create URI buffer.");
+            rt_kprintf("no memory for create URI buffer.\n");
             return -1;
         }
     }
@@ -52,20 +52,20 @@ int webclient_get_test(int argc, char **argv)
         URI = web_strdup(argv[1]);
         if(URI == RT_NULL)
         {
-            LOG_E("no memory for create URI buffer.");
+            rt_kprintf("no memory for create URI buffer.\n");
             return -1;
         }
     }
     else
     {
-        LOG_E("webclient_get_test [URI]  - webclient GET request test.");
+        rt_kprintf("webclient_get_test [URI]  - webclient GET request test.\n");
         return -1;
     }
 
     buffer = (unsigned char *) web_malloc(GET_HEADER_BUFSZ);
     if (buffer == RT_NULL)
     {
-        LOG_E("no memory for receive buffer.");
+        rt_kprintf("no memory for receive buffer.\n");
         ret = -RT_ENOMEM;
         goto __exit;
 
@@ -82,12 +82,12 @@ int webclient_get_test(int argc, char **argv)
     /* send GET request by default header */
     if ((resp_status = webclient_get(session, URI)) != 200)
     {
-        LOG_E("webclient GET request failed, response(%d) error.", resp_status);
+        rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
         ret = -RT_ERROR;
         goto __exit;
     }
 
-    LOG_I("webclient GET request response data :");
+    rt_kprintf("webclient GET request response data :");
 
     if(webclient_header_fields_get(session, "Content-Length"))
     {
@@ -96,7 +96,7 @@ int webclient_get_test(int argc, char **argv)
 
     if (content_length < 0)
     {
-        LOG_D("The webclient GET request type is chunked.");
+        rt_kprintf("The webclient GET request type is chunked.\n");
         do
         {
             bytes_read = webclient_read(session, buffer, GET_RESP_BUFSZ);

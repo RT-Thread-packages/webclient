@@ -112,7 +112,7 @@ struct webclient_session
     int resp_status;
 
     char *host;                         /* server host */
-    char *request;                      /* HTTP request address*/
+    char *req_url;                      /* HTTP request address*/
 
     int chunk_sz;
     int chunk_offset;
@@ -146,12 +146,12 @@ int webclient_write(struct webclient_session *session, const unsigned char *buff
 
 /* webclient GET/POST header buffer operate by the header fields */
 int webclient_header_fields_add(struct webclient_session *session, const char *fmt, ...);
-char *webclient_header_fields_get(struct webclient_session *session, const char *fields);
-int webclient_header_resp_status_get(struct webclient_session *session);
+const char *webclient_header_fields_get(struct webclient_session *session, const char *fields);
 
 /* send HTTP POST/GET request, and get response data */
 int webclient_response(struct webclient_session *session, unsigned char **response);
 int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response);
+int webclient_resp_status_get(struct webclient_session *session);
 
 #ifdef RT_USING_DFS
 /* file related operations */
