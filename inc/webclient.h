@@ -1,6 +1,6 @@
 /*
- * File      : webclient.h
- * COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
+ *  File      : webclient.h
+ *  COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
  * 2017-12-23     aozima       update gethostbyname to getaddrinfo.
  * 2018-01-04     aozima       add ipv6 address support.
  * 2018-07-26     chenyong     modify log information
+ * 2018-08-07     chenyong     modify header processing
  */
 
 #ifndef __WEBCLIENT_H__
@@ -96,59 +97,43 @@ enum WEBCLIENT_METHOD
     WEBCLIENT_POST,
 };
 
+struct  webclient_header
+{
+    char *buffer;
+    size_t length;                      /* content header buffer size */
+
+    size_t size;                        /* maximum support header size */
+};
+
 struct webclient_session
 {
-    /* the session socket */
+    struct webclient_header *header;    /* webclient response header information */
     int socket;
-    /* the response code of HTTP request */
-    int response;
+    int resp_status;
 
-    /* transfer encoding */
-    char *transfer_encoding;
+    char *host;                         /* server host */
+    char *req_url;                      /* HTTP request address*/
+
     int chunk_sz;
     int chunk_offset;
 
-    /* content_type of HTTP response */
-    char *content_type;
-    /* content_length of HTTP response */
-    int  content_length;
-
-    /* last modified timestamp of resource */
-    char *last_modified;
-
-    /* location */
-    char *location;
-
-    /* server host */
-    char *host;
-    /* HTTP request */
-    char *request;
-
-    /* position of reading */
-    unsigned int position;
-
-    /* remainder of content reading */
-    size_t content_length_remainder;
-    
-    int header_sz;
-    int resp_sz;
+    int content_length;
+    size_t content_remainder;           /* remainder of content length */
 
 #ifdef WEBCLIENT_USING_TLS
-        /* mbedtls connect session */
-        MbedTLSSession *tls_session;
+    MbedTLSSession *tls_session;        /* mbedtls connect session */
 #endif
 };
 
 /* create webclient session and set header response size */
-struct webclient_session *webclient_session_create(size_t header_sz, size_t resp_sz);
+struct webclient_session *webclient_session_create(size_t header_sz);
 
 /* send HTTP GET request */
-int webclient_get(struct webclient_session *session, const char *URI, const char *header);
+int webclient_get(struct webclient_session *session, const char *URI);
 int webclient_get_position(struct webclient_session *session, const char *URI, int position);
 
 /* send HTTP POST request */
-int webclient_post(struct webclient_session *session, const char *URI,
-        const char *header, const char *post_data);
+int webclient_post(struct webclient_session *session, const char *URI, const char *post_data);
 
 /* close and release wenclient session */
 int webclient_close(struct webclient_session *session);
@@ -159,9 +144,14 @@ int webclient_set_timeout(struct webclient_session *session, int millisecond);
 int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t size);
 int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);
 
+/* webclient GET/POST header buffer operate by the header fields */
+int webclient_header_fields_add(struct webclient_session *session, const char *fmt, ...);
+const char *webclient_header_fields_get(struct webclient_session *session, const char *fields);
+
 /* send HTTP POST/GET request, and get response data */
-int webclient_response(struct webclient_session *session, void **response);
-int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **result);
+int webclient_response(struct webclient_session *session, unsigned char **response);
+int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response);
+int webclient_resp_status_get(struct webclient_session *session);
 
 #ifdef RT_USING_DFS
 /* file related operations */

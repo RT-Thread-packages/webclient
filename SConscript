@@ -1,9 +1,13 @@
 from building import *
 
-cwd     = GetCurrentDir()
-src     = Glob('*.c')
-CPPPATH = [cwd]
+cwd  = GetCurrentDir()
+path = [cwd + '/inc']
 
-group = DefineGroup('WebClient', src, depend = ['PKG_USING_WEBCLIENT'], CPPPATH = CPPPATH)
+src  = Glob('src/*.c')
+
+if GetDepend(['WEBCLIENT_USING_SAMPLES']):
+    src += Glob('samples/*.c')
+
+group = DefineGroup('WebClient', src, depend = ['PKG_USING_WEBCLIENT'], CPPPATH = path)
 
 Return('group')
