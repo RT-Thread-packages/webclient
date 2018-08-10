@@ -1406,40 +1406,40 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 
     RT_ASSERT(URI);
 
-    if(post_data && header == RT_NULL)
+    if (post_data && header == RT_NULL)
     {
         LOG_E("request post failed, post input header cannot be empty.");
         return -WEBCLIENT_ERROR;
     }
 
-    if(post_data == RT_NULL && response == RT_NULL)
+    if (post_data == RT_NULL && response == RT_NULL)
     {
         LOG_E("request get failed, get response data cannot be empty.");
         return -WEBCLIENT_ERROR;
     }
 
-    if(post_data == RT_NULL)
+    if (post_data == RT_NULL)
     {
         session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
-        if(session == RT_NULL)
+        if (session == RT_NULL)
         {
             rc = -WEBCLIENT_NOMEM;
             goto __exit;
         }
 
-        if(header != RT_NULL)
+        if (header != RT_NULL)
         {
             strncpy(session->header->buffer, header, strlen(header));
         }
 
-        if(webclient_get(session, URI) != 200)
+        if (webclient_get(session, URI) != 200)
         {
             rc = -WEBCLIENT_ERROR;
             goto __exit;
         }
 
         totle_length = webclient_response(session, response);
-        if(totle_length <= 0)
+        if (totle_length <= 0)
         {
             rc = -WEBCLIENT_ERROR;
             goto __exit;
@@ -1448,35 +1448,37 @@ int webclient_request(const char *URI, const char *header, const char *post_data
     else
     {
         session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
-        if(session == RT_NULL)
+        if (session == RT_NULL)
         {
             rc = -WEBCLIENT_NOMEM;
             goto __exit;
         }
 
-        if(header != RT_NULL)
+        if (header != RT_NULL)
         {
             strncpy(session->header->buffer, header, strlen(header));
         }
 
-        if(webclient_post(session, URI, post_data) != 200)
+        if (webclient_post(session, URI, post_data) != 200)
         {
             rc = -WEBCLIENT_ERROR;
             goto __exit;
         }
     }
-    if(header != RT_NULL)
+
+    if (header != RT_NULL)
     {
         strncpy(session->header->buffer, header, strlen(header));
     }
+
 __exit:
-    if(session)
+    if (session)
     {
         webclient_close(session);
         session = RT_NULL;
     }
 
-    if(rc < 0)
+    if (rc < 0)
     {
         return rc;
     }

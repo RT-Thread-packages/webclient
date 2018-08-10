@@ -87,7 +87,7 @@ int webclient_get_file(const char* URI, const char* filename)
             {
                 write(fd, ptr, length);
                 total_length += length;
-                rt_kprintf(">");
+                LOG_RAW(">");
             }
             else
             {
@@ -107,7 +107,7 @@ int webclient_get_file(const char* URI, const char* filename)
             {
                 write(fd, ptr, length);
                 total_length += length;
-                rt_kprintf(">");
+                LOG_RAW(">");
             }
             else
             {
