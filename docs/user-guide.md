@@ -123,7 +123,6 @@ if ((resp_status = webclient_get(session, URI)) != 200)
     ret = -RT_ERROR;
     goto __exit;
 }
-
 ```
 
 4. **接收响应的数据**
@@ -135,7 +134,7 @@ if ((resp_status = webclient_get(session, URI)) != 200)
 ```c
 int content_pos = 0;
 /* 获取接收的响应数据长度 */
-int content_length = session->content_length;
+int content_length = atoi(webclient_header_fields_get(session, "Content-Length"));
 
 /* 循环接收响应数据直到数据接收完毕 */
 do
@@ -178,166 +177,173 @@ WenClient 软件包对于 GET/POST 请求，分别提供了几种不同的使用
 - 使用默认头部发送 GET 请求
 
 ```c
-    struct webclient_session *session = NULL;
+struct webclient_session *session = NULL;
 
-    session = webclient_create(1024);
-    
-    if(webclient_get(session, URI) != 200)
-    {
-        LOG_E("error!");
-    }
-  
-    while(1)
-    {
-        webclient_read(session, buffer, bfsz);
-        ...
-    } 
-    
-    webclient_close(session);
+session = webclient_create(1024);
+
+if(webclient_get(session, URI) != 200)
+{
+    LOG_E("error!");
+}
+
+while(1)
+{
+    webclient_read(session, buffer, bfsz);
+    ...
+} 
+
+webclient_close(session);
 ```
 
 - 使用自定义头部发送 GET 请求
 
 ```c
-    struct webclient_session *session = NULL;
+struct webclient_session *session = NULL;
 
-    session = webclient_create(1024);
+session = webclient_create(1024);
 
-    webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n");
+webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n");
 
-    if(webclient_get(session, URI) != 200)
-    {
-        LOG_E("error!");
-    }
-  
-    while(1)
-    {
-        webclient_read(session, buffer, bfsz);
-        ...
-    } 
-    
-    webclient_close(session);
+if(webclient_get(session, URI) != 200)
+{
+    LOG_E("error!");
+}
+
+while(1)
+{
+    webclient_read(session, buffer, bfsz);
+    ...
+} 
+
+webclient_close(session);
 ```
 
 - 发送获取部分数据的 GET 请求（多用于断点续传）
 
 ```c
-    struct webclient_session *session = NULL;
+struct webclient_session *session = NULL;
 
-    session = webclient_create(1024);
+session = webclient_create(1024);
 
-    if(webclient_get_position(URI, 100) != 206)
-    {
-        LOG_E("error!");
-    }
-  
-    while(1)
-    {
-        webclient_read(session, buffer, bfsz);
-        ...
-    } 
-    
-    webclient_close(session)；
+if(webclient_get_position(URI, 100) != 206)
+{
+    LOG_E("error!");
+}
+
+while(1)
+{
+    webclient_read(session, buffer, bfsz);
+    ...
+} 
+
+webclient_close(session)；
 ```
 
 - 使用 `webclient_response` 接收 GET 数据
 
-    多用于接收数据长度较小的情况。
+    多用于接收数据长度较小的 GET 请求。
 
 ```c
-    struct webclient_session *session = NULL;
-    char *result;
-	
-    session = webclient_create(1024);
+struct webclient_session *session = NULL;
+char *result;
 
-    if(webclient_get(session, URI, header) != 200)
-    {
-        LOG_E("error!");
-    }
-    
-    webclient_response(session, &result);
-    
-    free(result);
-    webclient_close(session);
+session = webclient_create(1024);
+
+if(webclient_get(session, URI) != 200)
+{
+    LOG_E("error!");
+}
+
+webclient_response(session, &result);
+
+web_free(result);
+webclient_close(session);
 ```
 
 - 使用 `webclient_request` 函数发送并接收 GET 请求
 
+    多用于接收数据长度较小，且头部信息已经拼接给出的 GET 请求。
+
 ```c
-    char *result;    
+char *result;    
 
-    webclient_request(URI, header, NULL, &result);
+webclient_request(URI, header, NULL, &result);
 
-    free(result);
+web_free(result);
 ```
 
 ### POST 请求方式
 
 - 分段数据 POST 请求
 
+    多用于上传数据量较大的 POST 请求，如：上传文件到服务器。
+
 ```c
-    struct webclient_session *session = NULL;
+struct webclient_session *session = NULL;
 
-    session = webclient_create(1024);
+session = webclient_create(1024);
 
-    /*  拼接必要的头部信息 */
-    webclient_header_fields_add(session, "Content-Length: %d\r\n", post_data_sz);
-    webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
+/*  拼接必要的头部信息 */
+webclient_header_fields_add(session, "Content-Length: %d\r\n", post_data_sz);
+webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
-    /* 分段数据上传 webclient_post 第三个传输上传数据为 NULL，改为下面循环上传数据*/
-    if( webclient_post(session, URI, NULL) != 200)
-    {
-        LOG_E("error!");
-    }
-  
-    while(1)
-    {
-        webclient_write(session, post_data, 1024);
-        ...
-    } 
-    
-    if( webclient_handle_response(session) != 200)
-    {
-        LOG_E("error!");
-    }
-    
-    webclient_close(session);
+/* 分段数据上传 webclient_post 第三个传输上传数据为 NULL，改为下面循环上传数据*/
+if( webclient_post(session, URI, NULL) != 200)
+{
+    LOG_E("error!");
+}
+
+while(1)
+{
+    webclient_write(session, post_data, 1024);
+    ...
+} 
+
+if( webclient_handle_response(session) != 200)
+{
+    LOG_E("error!");
+}
+
+webclient_close(session);
 ```
 
 - 整段数据 POST 请求
 
+    多用于上传文件较小的 POST 请求。
+
 ```c
-    char *post_data = "abcdefg";
+char *post_data = "abcdefg";
 
-    session = webclient_create(1024);
-    
-    /*  拼接必要的头部信息 */
-    webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
-    webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
+session = webclient_create(1024);
 
-    if(webclient_post(session, URI, post_data) != 200);
-    {
-        LOG_E("error!");
-    }
-	webclient_close(session);
+/*  拼接必要的头部信息 */
+webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
+webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
+
+if(webclient_post(session, URI, post_data) != 200);
+{
+    LOG_E("error!");
+}
+webclient_close(session);
 ```
 
 - 使用 `webclient_request` 函数发送 POST 请求
 
+    多用于上传文件较小且头头部信息已经拼接给出的 POST 请求。
+
 ```c
-    char *post_data = "abcdefg";
-    char *header = "xxx";
+char *post_data = "abcdefg";
+char *header = "xxx";
 
-    webclient_request(URI, header, post_data, NULL);
+webclient_request(URI, header, post_data, NULL);
 ```
-
 
 ## 常见问题
 
 ### HTTPS 地址不支持
 
 ```c
-[web]not support https connect, please enable webclient https configure!
+[E/WEB]not support https connect, please enable webclient https configure!
 ```
 
 - 原因：使用 HTTPS 地址但是没有开启 HTTPS 支持。
@@ -347,7 +353,7 @@ WenClient 软件包对于 GET/POST 请求，分别提供了几种不同的使用
 ### 头部数据长度超出
 
 ```c
-[web]not enough header buffer size(xxx)!
+[E/WEB]not enough header buffer size(xxx)!
 ```
 
 - 原因：添加的头部数据长度超过了最大支持的头部数据长度。

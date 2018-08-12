@@ -72,7 +72,7 @@
 
 ## 发送数据
 
-`int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t size);`
+`int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);`
 
 发送数据到连接的服务器。
 
@@ -88,7 +88,7 @@
 
 ## 接收数据
 
-`int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);`
+`int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t size);`
 
 从连接的服务器接收数据。
 
@@ -116,34 +116,34 @@
 | **返回**          | **描述**                           |
 |=0                 | 设置超时成功                        |
 
-## 设置请求发送的头部信息
+## 在请求头中添加字段数据
 
 `int webclient_header_fields_add(struct webclient_session *session, const char *fmt, ...);`
 
-该函数用于创建会话之后和发送 GET 或 POST 请求之前，用于添加发送的请求的头部信息。
+该函数用于创建会话之后和发送 GET 或 POST 请求之前，用于添加请求头字段数据。
 
 | 参数              | 描述                                |
 |:------------------|:-----------------------------------|
 |session            | 当前连接会话结构体指针               |
-|fmt                | 添加头部信息的表达式                 |
-|...                | 添加头部信息的数据，为可变参数        |
+|fmt                | 添加字段数据的表达式                 |
+|...                | 添加的字段数据，为可变参数        |
 | **返回**          | **描述**                           |
-| >0                | 成功添加的头部数据的长度            |
+| >0                | 成功添加的字段数据的长度            |
 | <=0               | 添加失败或者头部数据长度超出        |
 
-## 通过关键字获取头部信息数据
+## 通过字段名获取字段值数据
 
 `const char *webclient_header_fields_get(struct webclient_session *session, const char *fields);`
 
-该函数用于发送 GET 或 POST 请求之后，可以通过传入的头域名称获取对应的头域数据。
+该函数用于发送 GET 或 POST 请求之后，可以通过传入的字段名称获取对应的字段数据。
 
 | 参数              | 描述                                |
 |:------------------|:-----------------------------------|
 |session            | 当前连接会话结构体指针               |
-|fields             | HTTP 头域名称                 |
-| **返回**          | **描述**                           |
+|fields             | HTTP 字段名称                       |
+| **返回**          | **描述**                            |
 |= NULL             | 获取数据失败                        |
-|!= NULL            | 成功获取的关键字对应的数据           |
+|!= NULL            | 成功获取的字段数据                   |
 
 
 ## 接收响应数据到指定地址

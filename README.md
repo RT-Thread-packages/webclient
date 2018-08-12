@@ -2,12 +2,12 @@
 
 ## 1、介绍
 
-WebClient 软件包是 RT_Thread 自主研发的，基于 HTTP 协议的客户端的实现，它提供设备与 HTTP Server 的通讯的基本功能。
+WebClient 软件包是 RT-Thread 自主研发的，基于 HTTP 协议的客户端的实现，它提供设备与 HTTP Server 的通讯的基本功能。
 
 WebClient 软件包功能特点如下：
 
 - 支持 IPV4/IPV6 地址；
-- 支持 GET/POST 命令；
+- 支持 GET/POST 请求方法；
 - 支持文件的上传和下载功能；
 - 支持 HTTPS 加密传输；
 - 完善的头部数据添加和处理方式。
@@ -73,11 +73,11 @@ RT-Thread online packages
 ## 3、使用 WebClient 软件包
 - 软件包详细介绍，请参考 [软件包介绍](docs/introduction.md)
 
-- 如何从零开始使用，请参考 [用户手册](docs/user-guide.md)
+- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 
+
+- 如何从零开始使用，请参考 [用户指南](docs/user-guide.md)
 
 - 完整的 API 文档，请参考 [API 手册](docs/api.md)
-
-- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 
 
 - 软件包工作原理，请参考 [工作原理](docs/principle.md) 
 
@@ -86,7 +86,7 @@ RT-Thread online packages
 ## 4、注意事项
 
  - WebClient 软件包连接 HTTPS 服务器时需要开启 WebClient 中对 TLS 功能的支持。
- - WebClient 软件包版本更新（`V1.0.0 -> V2.0.0`）后软件包中函数接口和使用流程都有所变化，若开发者代码中使用之前接口，可以适配最新版本接口，或者在版本号配置中选择 `V1.0.0` 版本。
+ - WebClient 软件包版本更新（`V1.0.0 -> 当前最新版 V2.0.0`）后软件包中函数接口和使用流程都有所变化，若开发者代码中使用之前接口，可以适配最新版本接口，或者在版本号配置中选择 `V1.0.0` 版本。
 
 
 ## 5、联系方式 & 感谢
