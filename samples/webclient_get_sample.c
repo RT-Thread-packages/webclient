@@ -1,20 +1,7 @@
 /*
- *  File      : webclient_get_sample.c
- *  COPYRIGHT (C) 2006 - 2018, RT-Thread Development Team
+ * Copyright (c) 2006-2018, RT-Thread Development Team
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Change Logs:
  * Date           Author       Notes
@@ -89,11 +76,7 @@ int webclient_get_test(int argc, char **argv)
 
     rt_kprintf("webclient GET request response data :\n");
 
-    if(webclient_header_fields_get(session, "Content-Length"))
-    {
-        content_length = atoi(webclient_header_fields_get(session, "Content-Length"));
-    }
-
+    content_length = webclient_content_length_get(session);
     if (content_length < 0)
     {
         rt_kprintf("webclient GET request type is chunked.\n");
