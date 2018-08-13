@@ -134,7 +134,7 @@ if ((resp_status = webclient_get(session, URI)) != 200)
 ```c
 int content_pos = 0;
 /* 获取接收的响应数据长度 */
-int content_length = atoi(webclient_header_fields_get(session, "Content-Length"));
+int content_length = webclient_content_length_get(session);
 
 /* 循环接收响应数据直到数据接收完毕 */
 do
@@ -309,7 +309,7 @@ webclient_close(session);
 
 - 整段数据 POST 请求
 
-    多用于上传文件较小的 POST 请求。
+    多用于上传数据量较小的 POST 请求。
 
 ```c
 char *post_data = "abcdefg";

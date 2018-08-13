@@ -191,6 +191,19 @@
 | **返回**          | **描述**                           |
 | >0                | HTTP 响应状态码                     |
 
+## 获取 Content-Length 字段数据
+
+`int webclient_content_length_get(struct webclient_session *session);`
+
+该函数用于发送 GET 或 POST 请求之后，用于获取返回的 Content-Length 字段数据。
+
+| 参数              | 描述                                |
+|:------------------|:-----------------------------------|
+|session            | 当前连接会话结构体指针               |
+| **返回**          | **描述**                           |
+| >0                | Content-Length 字段数据            | 
+| <0                | 获取失败                           | 
+
 ## 下载文件到本地
 
 `int webclient_get_file(const char *URI, const char *filename);`
