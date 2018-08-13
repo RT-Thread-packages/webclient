@@ -129,7 +129,7 @@ while(1)
 webclient_close(session);
 ```
 
-V2.0.0 版本 GET 请求流如下：
+V2.0.0 版本 POST 请求流如下：
 
 - 创建会话结构体
 - 拼接头部数据（函数拼接方式）
