@@ -545,7 +545,7 @@ int webclient_resp_status_get(struct webclient_session *session)
  *
  * @param session webclient session
  *
- * @return response status code
+ * @return response content length
  */
 int webclient_content_length_get(struct webclient_session *session)
 {
