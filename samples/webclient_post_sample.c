@@ -94,7 +94,7 @@ int webclient_post_test(int argc, char **argv)
         goto __exit;
     }
 
-    LOG_I("webclient POST request response data :");
+    rt_kprintf("webclient POST request response data :\n");
     do
     {
         bytes_read = webclient_read(session, buffer, POST_RESP_BUFSZ);

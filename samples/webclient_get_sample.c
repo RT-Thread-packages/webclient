@@ -87,7 +87,7 @@ int webclient_get_test(int argc, char **argv)
         goto __exit;
     }
 
-    rt_kprintf("webclient GET request response data :");
+    rt_kprintf("webclient GET request response data :\n");
 
     if(webclient_header_fields_get(session, "Content-Length"))
     {
@@ -96,7 +96,7 @@ int webclient_get_test(int argc, char **argv)
 
     if (content_length < 0)
     {
-        rt_kprintf("The webclient GET request type is chunked.\n");
+        rt_kprintf("webclient GET request type is chunked.\n");
         do
         {
             bytes_read = webclient_read(session, buffer, GET_RESP_BUFSZ);

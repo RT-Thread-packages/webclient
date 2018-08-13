@@ -1,338 +1,95 @@
-# WebClient介绍 #
+# WebClient
 
-本章节是webclient的使用和API说明，描述了如何使用webclient与WEB Server通信。
+## 1、介绍
 
+WebClient 软件包是 RT-Thread 自主研发的，基于 HTTP 协议的客户端的实现，它提供设备与 HTTP Server 的通讯的基本功能。
 
-### webclient设计简介 ###
+WebClient 软件包功能特点如下：
 
-webclient是**HTTP**协议的客户端工具，提供与WEB Server通信的基本功能。
-一般而言，设备端运行RT-Thread开源实时系统，并使用webclient提供的API与 HTTP 服务器交互。
+- 支持 IPV4/IPV6 地址；
+- 支持 GET/POST 请求方法；
+- 支持文件的上传和下载功能；
+- 支持 HTTPS 加密传输；
+- 完善的头部数据添加和处理方式。
 
-### webclient会话结构体定义 ###
+更多软件包介绍请查看 [详细介绍](docs/introduction.md)。
 
-webclient底层操作接口都使用了统一的webclient客户端会话:  `struct webclient_session`，它被定义成:
+### 1.1 目录结构
 
-``` C
-struct webclient_session
-{
-    /* the session socket */
-    int socket;
-    /* the response code of HTTP request */
-    int response;
+WebClient 软件包目录结构如下所示：
 
-    /* transfer encoding */
-    char *transfer_encoding;
-    int chunk_sz;
-    int chunk_offset;
-
-    /* content_type of HTTP response */
-    char *content_type;
-    /* content_length of HTTP response */
-    int  content_length;
-
-    /* last modified timestamp of resource */
-    char *last_modified;
-
-    /* location */
-    char *location;
-
-    /* server host */
-    char *host;
-    /* HTTP request */
-    char *request;
-
-    /* private for webclient session. */
-
-    /* position of reading */
-    unsigned int position;
-
-    /* remainder of content reading */
-    size_t content_length_remainder;
-};
+``` 
+webclient
+├───docs 
+│   └───figures                     // 文档使用图片
+│   │   api.md                      // API 使用说明
+│   │   introduction.md             // 介绍文档
+│   │   principle.md                // 实现原理
+│   │   README.md                   // 文档结构说明  
+│   │   samples.md                  // 软件包示例
+│   │   user-guide.md               // 使用说明
+│   └───version.md                  // 版本
+├───inc                             // 头文件
+├───src                             // 源文件				
+├───samples                         // 示例代码
+|   |   webclient_get_sample        // GET 请求示例代码
+│   └───webclient_post_sample       // POST 请求示例代码
+│   LICENSE                         // 软件包许可证
+│   README.md                       // 软件包使用说明
+└───SConscript                      // RT-Thread 默认的构建脚本
 ```
 
-其中当服务端有回应时:
+### 1.2 许可证
 
-* response：会存储服务端的相应代码，如果成功，服务端回复:200；详细描述请参考 HTTP 状态码表。
-* content_type：服务端提供的内容类型。
-* content_length：服务端返回的数据长度。
+WebClient 软件包遵循 LGPLv2.1 许可，详见 LICENSE 文件。
 
+### 1.3 依赖
 
+- RT_Thread 3.0+
 
-## webclient API说明 ##
+- [mbedtls 软件包](https://github.com/RT-Thread-packages/mbedtls)（如果开启 HTTPS 支持）
 
+## 2、获取软件包
 
-### webclient会话接口 ###
+使用 WebClient 软件包需要在 RT-Thread 的包管理中选中它，具体路径如下：
 
-
-webclient底层接口定义了面向http这层的公共访问接口（流方式接口），可以基于这层接口进行底层的http操作。
-
-
-#### webclient_open ####
-
-
-``` C
-struct webclient_session* webclient_open(const char* URI);
+```
+RT-Thread online packages
+    IoT - internet of things  --->
+		[*] WebClient: A HTTP/HTTPS Client for RT-Thread
+		[ ]   Enable support tls protocol
+		[ ]   Enable webclient GET/POST samples
+		      Version (latest)  --->
 ```
 
-* 功能: 打开一个webclient客户端
-* 参数1: URI 指向相应的网址，可以包括域名，特殊的端口号等。例如:
-`URI = "http://www.test.com:8080/index.html"`
+**Enable support tls protocol** ：开启 HTTPS 支持；
 
-* 返回值: 成功返回一个webclient客户端会话；失败返回RT_NULL
+**Enable webclient GET/POST samples** ：添加示例代码；
 
-webclient_open用于打开一个webclient会话，默认方法为get。
-返回时，客户端就已经解析了http返回头部，里面有status_code及resp_len。
-根据这些信息可以做进一步处理，如使用webclient_read读取服务器返回的数据。
+**Version** ：配置软件包版本。
 
+配置完成后让 RT-Thread 的包管理器自动更新，或者使用 pkgs --update 命令更新包到 BSP 中。
 
-#### webclient_open_header ####
+## 3、使用 WebClient 软件包
+- 软件包详细介绍，请参考 [软件包介绍](docs/introduction.md)
 
-``` C
-struct webclient_session* 
-webclient_open_header(const char* URI, int method,
-				      const char* header, size_t header_sz);
-```
+- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 
 
-* 功能: 在打开会话时可以加入一些自定义的HTTP请求头信息
-* 参数1:  URI，指向相应的网址，可以包括域名，特殊的端口号等。例如:
-`URI = "http://www.test.com:8080/index.html"`
+- 如何从零开始使用，请参考 [用户指南](docs/user-guide.md)
 
+- 完整的 API 文档，请参考 [API 手册](docs/api.md)
 
-* 参数2: method，定义了打开URI的方法，当前支持GET（WEBCLIENT_GET）或POST（WEBCLIENT_POST)
-* 参数3: header信息，例如:
+- 软件包工作原理，请参考 [工作原理](docs/principle.md) 
 
-``` C
-"Host: www.host.com\r\n"
-"User-Agent: YourAgent\r\n"
-"Content-Type: application/x-www-form-urlencoded\r\n"
-```
+- 更多**详细介绍文档**位于 [`/docs`](/docs) 文件夹下，**使用软件包进行开发前请务必查看**。
 
-header信息中必须使用"CR+LF"(回车+换行)作为分隔符和结束符。
-header中每项应该符合HTTP的协议标准。
-而一些基本的信息，例如Host，HTTP/1.0等信息，如果header中不存在，webclient会自动添加。
+## 4、注意事项
 
-* 返回值: 成功返回一个webclient客户端会话；失败返回RT_NULL
+ - WebClient 软件包连接 HTTPS 服务器时需要开启 WebClient 中对 TLS 功能的支持。
+ - WebClient 软件包版本更新（`V1.0.0 -> 当前最新版 V2.0.0`）后软件包中函数接口和使用流程都有所变化，若开发者代码中使用之前接口，可以适配最新版本接口，或者在版本号配置中选择 `V1.0.0` 版本。
 
-webclient_open_header用于打开一个webclient会话，method由用户指定。
-相比webclient_open接口，webclient_open_header可以自定义请求的header。
 
+## 5、联系方式 & 感谢
 
-
-#### webclient_close ####
-
-
-``` C
-int webclient_close(struct webclient_session* session);
-```
-
-* 功能: 关闭一个webclient客户端
-* 参数1: session指向要关闭的webclient客户端会话
-* 返回值: 0
-
-webclient_close用于关闭webclient一个会话。
-
-
-
-
-### webclient数据接口 ###
-
-
-#### webclient_read ####
-
-
-``` C
-int webclient_read (struct webclient_session* session, 
-					unsigned char *buffer, size_t size);
-```
-
-* 功能: 从http连接中读取一段数据（非服务端响应的http header）
-* 参数1: session，一个webclient客户端会话
-* 参数2: buffer，保存从http连接中读取的数据的缓冲区
-* 参数3: size，每次读取的最大数据
-* 返回值: 成功返回读到的数据长度；失败返回负数
-
-webclient_read从webclient会话中读取数据。
-
-#### webclient_write ####
-
-
-``` C
-int webclient_write(struct webclient_session* session, 
-					const unsigned char *buffer, size_t size);
-```
-
-* 功能: 向http连接发送一段数据
-* 参数1: session，一个webclient客户端会话
-* 参数2: buffer，要发送的数据的缓冲区
-* 参数3: size，要发送的数据的长度
-* 返回值: 成功发送的数据长度
-
-webclient_write向webclient会话写入数据。
-
-### webclient应用接口 ###
-
-
-#### webclient传输数据 ####
-
-``` C
-int webclient_transfer(const char* URI, const char* header, 
-                         size_t header_sz,
-						 const char* data, size_t data_sz,
-						 char *result, size_t result_sz);
-```
-
-* 功能: 向指定的URI传递数据data（同时也设置附加的HTTP请求头部信息为header)，并读取结果到result缓冲区中。函数返回读取到的数据长度。
-* 参数1: URI，指向相应的网址，可以包括域名，特殊的端口号等。
-* 参数2: header信息。
-* 参数4: header信息的长度。
-* 参数4: data，要发送的数据
-* 参数5: size，要发送的数据的长度
-* 参数6: result，用于保存从服务器接收到的数据缓冲区，当不需要保存时，可以为空。
-* 参数7: result_sz，用于保存从服务器接收到的数据缓冲区长度。
-* 返回值: 成功发送的数据长度
-
-> 注：webclient_transfer会自动创建一个session，并在传输完成后关闭session。
-
-#### webclient文件下载 ####
-
-``` C
-int webclient_get_file(const char* URI, const char* filename);
-```
-
-这个函数用于从URI下载一个文件，并保存到filename指定的路径上。保存的文件仅包括服务端提供的文件，而不包括HTTP响应的头部信息。例如下面的例子:
-
-``` C
-/*
-* 服务端的文件test.txt，放于webroot目录下(web路径的根目录下)，其内容是:
-* "this is a test.\n"
-*/
-void test(void)
-{
-	/* 下载test.txt文件 */
-	webclient_get_file("http://www.test.com/test.txt", "/test.txt");
-}
-/*
-* 保存在本地根目录的test.txt文件的内容是:
-* "this is a test.\n"
-*/
-```
-
-
-
-
-#### webclient文件上传 ####
-
-``` C
-int webclient_post_file(const char* URI, 
-                   const char* filename, 
-				   const char* form_data);
-```
-
-这个函数用于从filename路径的文件中读取数据，并向URI以POST方法发送这个文件的
-内容；
-例如用于上传的form是:
-
-``` C
-<form action="uploader.php" method="post" enctype="multipart/form-data">
-<label for="file">Filename:</label>
-<input type="file" name="file" id="file" />
-<br />
-<input type="submit" name="submit" value="Submit" />
-</form>
-```
-
-参数form_data可以填充服务端关心的类型信息，例如:
-
-``` C
-"name=\"file\"; filename=\"test.txt\""
-```
-
-这样，服务端可以得到filename的值是“test.txt”。
-
-## webclient测试及示例程序 ##
-
-下面的例子是一个使用webclient底层接口的例子
-
-``` C
-#include <http_client.h>
-#include <dfs_posix.h>
-#define BUF_SZ 4096
-void webclient_test(void)
-{
-	int fd = -1;
-	int offset;
-	rt_uint8_t* ptr = RT_NULL;
-	struct webclient_session* session = RT_NULL; /* webclient客户端会话 */
-
-	session = webclient_open("http://www.test.com/index.html");
-	if (session == RT_NULL)
-	{
-		rt_kprintf("open website failed.\n");
-		goto __exit;
-	}
-
-	if (session->response != 200)
-	{
-		/* 服务端给出错误的响应 */
-		rt_kprintf("wrong response: %d\n", session->response);
-		goto __exit;
-	}
-
-	if (strcmp(session->content_type, "text/html") != 0)
-	{
-		/* 不是自己关心的内容类别，退出 */
-		rt_kprintf("context_type: %d\n", session->content_type);
-		goto __exit;
-	}
-
-	fd = open("/index.html", O_WRONLY | O_CREAT, 0);
-	if (fd < 0)
-	{
-		/* 创建文件出错，返回 */
-		rt_kprintf("open file failed\n");
-		goto __exit;
-	}
-
-	/* 分配需要的缓冲 */
-	ptr = rt_malloc (BUF_SZ);
-	if (ptr == RT_NULL)
-	{
-		rt_kprintf("out of memory\n");
-		goto __exit;
-	}
-
-	if (session->content_length == 0)
-	{
-		/* 如果服务端未给出数据内容长度，读取数据直到服务端关闭连接 */
-		while (1)
-		{
-		length = webclient_read(session, ptr, BUF_SZ);
-		if (length > 0) write(fd, ptr, length);
-		else break;
-		}
-	}
-	else
-	{
-		for (offset = 0; offset < session->content_length; )
-		{
-			/* 从连接读取数据 */
-			length = webclient_read(session, ptr,
-			session->content_length - offset > BUF_SZ?
-			BUF_SZ:session->content_length - offset);
-			/* 写入到文件中 */
-			if (length > 0) write(fd, ptr, length);
-			else break;
-			/* 挪动偏移位置 */
-			offset += length;
-		}
-	}
-
-__exit: /* 退出出口 */
-	if (session != RT_NULL) webclient_close(session);
-	if (fd >= 0) close(fd);
-	if (ptr != RT_NULL) rt_free(ptr);
-	return;
-}
-```
-
+- 维护：RT-Thread 开发团队
+- 主页：https://github.com/RT-Thread-packages/webclient
