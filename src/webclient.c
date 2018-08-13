@@ -553,6 +553,20 @@ int webclient_resp_status_get(struct webclient_session *session)
     return session->resp_status;
 }
 
+/**
+ * get http response data content length.
+ *
+ * @param session webclient session
+ *
+ * @return response status code
+ */
+int webclient_content_length_get(struct webclient_session *session)
+{
+    RT_ASSERT(session);
+
+    return session->content_length;
+}
+
 static int webclient_send_header(struct webclient_session *session, int method)
 {
     int rc = WEBCLIENT_OK;

@@ -89,11 +89,7 @@ int webclient_get_test(int argc, char **argv)
 
     rt_kprintf("webclient GET request response data :\n");
 
-    if(webclient_header_fields_get(session, "Content-Length"))
-    {
-        content_length = atoi(webclient_header_fields_get(session, "Content-Length"));
-    }
-
+    content_length = webclient_content_length_get(session);
     if (content_length < 0)
     {
         rt_kprintf("webclient GET request type is chunked.\n");

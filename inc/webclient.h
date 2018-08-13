@@ -152,6 +152,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
 int webclient_response(struct webclient_session *session, unsigned char **response);
 int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response);
 int webclient_resp_status_get(struct webclient_session *session);
+int webclient_content_length_get(struct webclient_session *session);
 
 #ifdef RT_USING_DFS
 /* file related operations */
