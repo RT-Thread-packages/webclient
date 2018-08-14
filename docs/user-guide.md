@@ -10,7 +10,7 @@
 
 详细配置介绍如下所示：
 
-```
+```shell
 RT-Thread online packages
     IoT - internet of things  --->
 		[*] WebClient: A HTTP/HTTPS Client for RT-Thread
@@ -34,7 +34,7 @@ RT-Thread online packages
 
 1. **创建客户端会话结构体**
 
-```
+```c
 struct  webclient_header
 {
     char *buffer;                       //添加或者获取的头部数据

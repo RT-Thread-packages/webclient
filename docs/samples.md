@@ -52,7 +52,7 @@ GET 请求示例使用方式有如下两种：
 
 - 在 MSH 中使用命令 `web_get_test` 执行 GET 请求示例程序，可以获取并打印显示默认网址下载的文件信息，如下图 LOG 显示：
 
-```shell
+```c
 msh />web_get_test
 webclient GET request response data :
 RT-Thread is an open source IoT operating system from China, which has strong scalability: from a tiny kernel running on a tiny core, for example ARM Cortex-M0, or Cortex-M3/4/7, to a rich feature system running on MIPS32, ARM Cortex-A8, ARM Cortex-A9 DualCore etc.
@@ -77,7 +77,7 @@ POST 请求示例使用方式有如下两种：
 
 - 在 MSH 中使用命令 `web_post_test` 执行 POST 请求示例程序，可以获取并打印显示响应数据（默认 POST 请求的地址是类似于回显的地址，会返回上传的数据），如下图 LOG 显示：
 
-```shell
+```c
 msh />web_post_test
 webclient POST request response data :
 RT-Thread is an open source IoT operating system from China!
