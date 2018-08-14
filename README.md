@@ -41,7 +41,7 @@ webclient
 
 ### 1.2 许可证
 
-WebClient 软件包遵循 LGPLv2.1 许可，详见 LICENSE 文件。
+WebClient 软件包遵循 Apache-2.0 许可，详见 LICENSE 文件。
 
 ### 1.3 依赖
 
