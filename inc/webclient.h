@@ -23,6 +23,10 @@
 #include <tls_client.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif   
+
 #undef DBG_SECTION_NAME
 #undef DBG_LEVEL
 #undef DBG_COLOR
@@ -145,6 +149,10 @@ int webclient_content_length_get(struct webclient_session *session);
 /* file related operations */
 int webclient_get_file(const char *URI, const char *filename);
 int webclient_post_file(const char *URI, const char *filename, const char *form_data);
+#endif
+
+#ifdef  __cplusplus
+    }
 #endif
 
 #endif
