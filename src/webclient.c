@@ -545,7 +545,7 @@ int webclient_resp_status_get(struct webclient_session *session)
  *
  * @param session webclient session
  *
- * @return response content length
+ * @return response status code
  */
 int webclient_content_length_get(struct webclient_session *session)
 {
@@ -689,19 +689,26 @@ int webclient_handle_response(struct webclient_session *session)
     }
 
     /* get HTTP status code */
-    mime_ptr = strstr(session->header->buffer, "HTTP/1.");
-    if (mime_ptr != RT_NULL)
+    mime_ptr = web_strdup(session->header->buffer);
+    if(mime_ptr == RT_NULL)
     {
-        mime_ptr += strlen("HTTP/1.x");
+        return -WEBCLIENT_NOMEM;
+    }
 
-        while (*mime_ptr && (*mime_ptr == ' ' || *mime_ptr == '\t'))
-            mime_ptr++;
+    if(strstr(mime_ptr, "HTTP/1."))
+    {
+        char *ptr =  mime_ptr;
+
+        ptr += strlen("HTTP/1.x");
+
+        while (*ptr && (*ptr == ' ' || *ptr == '\t'))
+            ptr++;
 
         /* Terminate string after status code */
-        for (i = 0; ((mime_ptr[i] != ' ') && (mime_ptr[i] != '\t')); i++);
-        mime_ptr[i] = '\0';
+        for (i = 0; ((ptr[i] != ' ') && (ptr[i] != '\t')); i++);
+        ptr[i] = '\0';
 
-        session->resp_status = (int) strtol(mime_ptr, RT_NULL, 10);
+        session->resp_status = (int) strtol(ptr, RT_NULL, 10);
     }
 
     /* get content length */
@@ -720,6 +727,11 @@ int webclient_handle_response(struct webclient_session *session)
         webclient_read_line(session, line, session->header->size);
         session->chunk_sz = strtol(line, RT_NULL, 16);
         session->chunk_offset = 0;
+    }
+
+    if (mime_ptr)
+    {
+        web_free(mime_ptr);
     }
 
     if (rc < 0)
