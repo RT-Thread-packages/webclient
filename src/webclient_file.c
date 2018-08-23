@@ -194,7 +194,7 @@ int webclient_post_file(const char* URI, const char* filename,
             "Content-Type: application/octet-stream\r\n\r\n");
     /* calculate content-length */
     length += buffer_ptr - buffer;
-    length += strlen(boundary) + 6; /* add the last boundary */
+    length += rt_strlen(boundary) + 6; /* add the last boundary */
 
     /* build header for upload */
     header_ptr += rt_snprintf(header_ptr,
@@ -236,7 +236,7 @@ int webclient_post_file(const char* URI, const char* filename,
 
     /* send last boundary */
     rt_snprintf((char*) buffer, WEBCLIENT_RESPONSE_BUFSZ, "\r\n--%s--\r\n", boundary);
-    webclient_write(session, buffer, strlen(boundary) + 6);
+    webclient_write(session, buffer, rt_strlen(boundary) + 6);
 
 __exit:
     if (fd >= 0)
