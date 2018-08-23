@@ -459,7 +459,8 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
     RT_ASSERT(session->header->buffer);
 
     va_start(args, fmt);
-    length = rt_vsnprintf(session->header->buffer + session->header->length, session->header->size, fmt, args);
+    length = vsnprintf(session->header->buffer + session->header->length,
+            session->header->size - session->header->length, fmt, args);
     if (length < 0)
     {
         LOG_E("add fields header data failed, return length(%d) error.", length);
@@ -566,9 +567,12 @@ static int webclient_send_header(struct webclient_session *session, int method)
     if (session->header->length == 0)
     {
         /* use default header data */
-        webclient_header_fields_add(session, "GET %s HTTP/1.1\r\n", session->req_url);
-        webclient_header_fields_add(session, "Host: %s\r\n", session->host);
-        webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n\r\n");
+        if(webclient_header_fields_add(session, "GET %s HTTP/1.1\r\n", session->req_url) < 0)
+            return -WEBCLIENT_NOMEM;
+        if(webclient_header_fields_add(session, "Host: %s\r\n", session->host) < 0)
+            return -WEBCLIENT_NOMEM;
+        if(webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n\r\n") < 0)
+            return -WEBCLIENT_NOMEM;
 
         webclient_write(session, (unsigned char *) session->header->buffer, session->header->length);
     }
@@ -604,17 +608,20 @@ static int webclient_send_header(struct webclient_session *session, int method)
 
             if (memcmp(header, "Host:", strlen("Host:")))
             {
-                webclient_header_fields_add(session, "Host: %s\r\n", session->host);
+                if(webclient_header_fields_add(session, "Host: %s\r\n", session->host) < 0)
+                    return -WEBCLIENT_NOMEM;
             }
 
             if (memcmp(header, "User-Agent:", strlen("User-Agent:")))
             {
-                webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n");
+                if(webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n") < 0)
+                    return -WEBCLIENT_NOMEM;
             }
 
             if (memcmp(header, "Accept:", strlen("Accept:")))
             {
-                webclient_header_fields_add(session, "Accept: */*\r\n");
+                if(webclient_header_fields_add(session, "Accept: */*\r\n") < 0)
+                    return -WEBCLIENT_NOMEM;
             }
 
             /* header data end */
@@ -686,12 +693,19 @@ int webclient_handle_response(struct webclient_session *session)
         mime_buffer[rc - 1] = '\0';
 
         session->header->length += rc;
+
+        if(session->header->length >= session->header->size)
+        {
+            LOG_E("not enough header buffer size(%d)!", session->header->size);
+            return -WEBCLIENT_NOMEM;
+        }
     }
 
     /* get HTTP status code */
     mime_ptr = web_strdup(session->header->buffer);
     if(mime_ptr == RT_NULL)
     {
+        LOG_E("no memory for get http status code buffer!");
         return -WEBCLIENT_NOMEM;
     }
 
@@ -811,14 +825,14 @@ int webclient_get(struct webclient_session *session, const char *URI)
     if (rc != WEBCLIENT_OK)
     {
         /* connect to webclient server failed. */
-        goto __exit;
+        return rc;
     }
 
     rc = webclient_send_header(session, WEBCLIENT_GET);
     if (rc != WEBCLIENT_OK)
     {
         /* send header to webclient server failed. */
-        goto __exit;
+       return rc;
     }
 
     /* handle the response header of webclient server */
@@ -831,29 +845,16 @@ int webclient_get(struct webclient_session *session, const char *URI)
         if ((resp_status == 302 || resp_status == 301) && location)
         {
             webclient_close(session);
-            resp_status = webclient_get(session, location);
-            if (resp_status < 0)
-            {
-                rc = resp_status;
-                goto __exit;
-            }
-
-            return resp_status;
+            return webclient_get(session, location);
         }
         else if (resp_status != 200)
         {
             LOG_E("get failed, handle response(%d) error!", resp_status);
-            goto __exit;
+            return resp_status;
         }
     }
 
-__exit:
-    if (resp_status)
-    {
-        return resp_status;
-    }
-
-    return rc;
+    return resp_status;
 }
 
 /**
@@ -877,25 +878,25 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
     rc = webclient_connect(session, URI);
     if (rc != WEBCLIENT_OK)
     {
-        goto __exit;
+        return rc;
     }
 
     /* splice header*/
     if (webclient_header_fields_add(session, "Range: bytes=%d-\r\n", position) <= 0)
     {
-        rc = WEBCLIENT_ERROR;
-        goto __exit;
+        rc = -WEBCLIENT_ERROR;
+        return rc;
     }
 
     rc = webclient_send_header(session, WEBCLIENT_GET);
     if (rc != WEBCLIENT_OK)
     {
-        goto __exit;
+        return rc;
     }
 
     /* handle the response header of webclient server */
     resp_status = webclient_handle_response(session);
-    if (rc > 0)
+    if (resp_status > 0)
     {
         const char *location = webclient_header_fields_get(session, "Location");
 
@@ -903,29 +904,16 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
         if ((resp_status == 302 || resp_status == 301) && location)
         {
             webclient_close(session);
-            resp_status = webclient_get_position(session, location, position);
-            if (resp_status < 0)
-            {
-                rc = resp_status;
-                goto __exit;
-            }
-
-            return resp_status;
+            return webclient_get_position(session, location, position);
         }
         else if (resp_status != 206)
         {
             LOG_E("get failed, handle response(%d) error!", resp_status);
-            goto __exit;
+            return resp_status;
         }
     }
 
-__exit:
-    if (resp_status)
-    {
-        return resp_status;
-    }
-
-    return rc;
+    return resp_status;
 }
 
 /**
@@ -954,14 +942,14 @@ int webclient_post(struct webclient_session *session, const char *URI, const cha
     if (rc != WEBCLIENT_OK)
     {
         /* connect to webclient server failed. */
-        goto __exit;
+        return rc;
     }
 
     rc = webclient_send_header(session, WEBCLIENT_POST);
     if (rc != WEBCLIENT_OK)
     {
         /* send header to webclient server failed. */
-        goto __exit;
+        return rc;
     }
 
     if (post_data)
@@ -973,17 +961,11 @@ int webclient_post(struct webclient_session *session, const char *URI, const cha
         if (resp_status != 200)
         {
             LOG_E("post failed, handle response(%d) error.", resp_status);
-            goto __exit;
+            return resp_status;
         }
     }
 
-__exit:
-    if (resp_status)
-    {
-        return resp_status;
-    }
-
-    return rc;
+    return resp_status;
 }
 
 
@@ -1285,10 +1267,14 @@ int webclient_close(struct webclient_session *session)
 #endif
 
     if (session->host)
+    {
         web_free(session->host);
+    }
 
     if (session->req_url)
+    {
         web_free(session->req_url);
+    }
 
     if (session->header && session->header->buffer)
     {
