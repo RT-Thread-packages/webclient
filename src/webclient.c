@@ -19,13 +19,14 @@
 
 #include <webclient.h>
 
-#if defined(RT_USING_DFS_NET) || defined(SAL_USING_POSIX)
+/* support both enable and disable "SAL_USING_POSIX" */
+#if defined(RT_USING_SAL)
 #include <netdb.h>
 #include <sys/socket.h>
 #else
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
-#endif /* SAL_USING_POSIX */
+#endif /* RT_USING_SAL */
 
 /* default receive or send timeout */
 #define WEBCLIENT_DEFAULT_TIMEO        6
