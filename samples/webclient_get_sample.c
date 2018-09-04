@@ -102,7 +102,9 @@ int webclient_get_test(int argc, char **argv)
 
         do
         {
-            bytes_read = webclient_read(session, buffer, GET_RESP_BUFSZ);
+            bytes_read = webclient_read(session, buffer, 
+                    content_length - content_pos > GET_RESP_BUFSZ ?
+                            GET_RESP_BUFSZ : content_length - content_pos);
             if (bytes_read <= 0)
             {
                 break;
