@@ -33,7 +33,7 @@ int webclient_get_file(const char* URI, const char* filename)
     size_t length, total_length = 0;
     unsigned char *ptr = RT_NULL;
     struct webclient_session* session = RT_NULL;
-    int resp_status = 0, content_length = -1;
+    int resp_status = 0;
 
     session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
     if(session == RT_NULL)
