@@ -17,6 +17,16 @@
 #ifdef RT_USING_DFS
 #include <dfs_posix.h>
 
+#define DBG_ENABLE
+#define DBG_SECTION_NAME               "web.file"
+#ifdef WEBCLIENT_DEBUG
+#define DBG_LEVEL                      DBG_LOG
+#else
+#define DBG_LEVEL                      DBG_INFO
+#endif /* WEBCLIENT_DEBUG */
+#define DBG_COLOR
+#include <rtdbg.h>
+
 /**
  * send GET request and store response data into the file.
  *

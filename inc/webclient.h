@@ -27,21 +27,6 @@
 extern "C" {
 #endif   
 
-#undef DBG_SECTION_NAME
-#undef DBG_LEVEL
-#undef DBG_COLOR
-#undef DBG_ENABLE
-
-#define DBG_ENABLE
-#define DBG_SECTION_NAME               "WEB"
-#ifdef WEBCLIENT_DEBUG
-#define DBG_LEVEL                      DBG_LOG
-#else
-#define DBG_LEVEL                      DBG_INFO
-#endif /* WEBCLIENT_DEBUG */
-#define DBG_COLOR
-#include <rtdbg.h>
-
 #ifndef web_malloc
 #define web_malloc                     rt_malloc
 #endif
