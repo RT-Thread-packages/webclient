@@ -83,7 +83,7 @@ if (session == RT_NULL)
  WebClient 软件包提供两种请求头部发送方式：
 
  - 默认头部数据
- 
+
     如果要使用默认的头部信息，则不需要拼接任何头部数据，可直接调用 GET 发送命令。默认头部数据一般只用于 GET 请求。
 
  - 自定义头部数据
@@ -333,9 +333,8 @@ webclient_close(session);
 
 ```c
 char *post_data = "abcdefg";
-char *header = "xxx";
 
-webclient_request(URI, header, post_data, NULL);
+webclient_request(URI, NULL, post_data, NULL);
 ```
 
 ## 常见问题

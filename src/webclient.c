@@ -1416,12 +1416,6 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 
     RT_ASSERT(URI);
 
-    if (post_data && header == RT_NULL)
-    {
-        LOG_E("request post failed, post input header cannot be empty.");
-        return -WEBCLIENT_ERROR;
-    }
-
     if (post_data == RT_NULL && response == RT_NULL)
     {
         LOG_E("request get failed, get response data cannot be empty.");
@@ -1468,8 +1462,21 @@ int webclient_request(const char *URI, const char *header, const char *post_data
         {
             rt_strncpy(session->header->buffer, header, rt_strlen(header));
         }
+        else
+        {
+            /* build header for upload */
+            webclient_header_fields_add(session, "Content-Length: %d\r\n", rt_strlen(post_data));
+            webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
+        }
 
         if (webclient_post(session, URI, post_data) != 200)
+        {
+            rc = -WEBCLIENT_ERROR;
+            goto __exit;
+        }
+        
+        totle_length = webclient_response(session, response);
+        if (totle_length <= 0)
         {
             rc = -WEBCLIENT_ERROR;
             goto __exit;
