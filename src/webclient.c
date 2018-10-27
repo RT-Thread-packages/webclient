@@ -434,8 +434,9 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
 
         if (connect(socket_handle, res->ai_addr, res->ai_addrlen) != 0)
         {
-            /* connect failed */
+            /* connect failed, close socket */
             LOG_E("connect failed, connect socket(%d) error.", socket_handle);
+            closesocket(socket_handle);
             rc = -WEBCLIENT_CONNECT_FAILED;
             goto __exit;
         }
@@ -617,19 +618,19 @@ static int webclient_send_header(struct webclient_session *session, int method)
                 web_free(header_buffer);
             }
 
-            if (memcmp(header, "Host:", rt_strlen("Host:")))
+            if (strstr(header, "Host:") == RT_NULL)
             {
                 if (webclient_header_fields_add(session, "Host: %s\r\n", session->host) < 0)
                     return -WEBCLIENT_NOMEM;
             }
 
-            if (memcmp(header, "User-Agent:", rt_strlen("User-Agent:")))
+            if (strstr(header, "User-Agent:") == RT_NULL)
             {
                 if (webclient_header_fields_add(session, "User-Agent: RT-Thread HTTP Agent\r\n") < 0)
                     return -WEBCLIENT_NOMEM;
             }
 
-            if (memcmp(header, "Accept:", rt_strlen("Accept:")))
+            if (strstr(header, "Accept:") == RT_NULL)
             {
                 if (webclient_header_fields_add(session, "Accept: */*\r\n") < 0)
                     return -WEBCLIENT_NOMEM;
