@@ -54,7 +54,7 @@ int webclient_get_file(const char* URI, const char* filename)
 
     if ((resp_status = webclient_get(session, URI)) != 200)
     {
-        LOG_E("get file failed, wrong response: %d.", resp_status);
+        LOG_E("get file failed, wrong response: %d (-0x%X).", resp_status, resp_status);
         rc = -WEBCLIENT_ERROR;
         goto __exit;
     }
