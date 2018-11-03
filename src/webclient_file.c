@@ -40,7 +40,7 @@ int webclient_get_file(const char* URI, const char* filename)
 {
     int fd = -1, rc = WEBCLIENT_OK;
     size_t offset;
-    size_t length, total_length = 0;
+    int length, total_length = 0;
     unsigned char *ptr = RT_NULL;
     struct webclient_session* session = RT_NULL;
     int resp_status = 0;
