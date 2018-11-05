@@ -40,7 +40,7 @@ int webclient_get_file(const char* URI, const char* filename)
 {
     int fd = -1, rc = WEBCLIENT_OK;
     size_t offset;
-    size_t length, total_length = 0;
+    int length, total_length = 0;
     unsigned char *ptr = RT_NULL;
     struct webclient_session* session = RT_NULL;
     int resp_status = 0;
@@ -54,7 +54,7 @@ int webclient_get_file(const char* URI, const char* filename)
 
     if ((resp_status = webclient_get(session, URI)) != 200)
     {
-        LOG_E("get file failed, wrong response: %d.", resp_status);
+        LOG_E("get file failed, wrong response: %d (-0x%X).", resp_status, resp_status);
         rc = -WEBCLIENT_ERROR;
         goto __exit;
     }
