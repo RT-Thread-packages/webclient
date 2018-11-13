@@ -379,9 +379,15 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     }
 
     /* copy host address */
-    if (*req_url)
+    if (req_url)
     {
         session->req_url = web_strdup(req_url);
+    }
+    else
+    {
+        LOG_E("connect failed, resolve request address error.");
+        rc = -WEBCLIENT_ERROR;
+        goto __exit;
     }
 
 #ifdef WEBCLIENT_USING_TLS
@@ -856,8 +862,28 @@ int webclient_get(struct webclient_session *session, const char *URI)
         /* relocation */
         if ((resp_status == 302 || resp_status == 301) && location)
         {
+            char *new_url;
+
+            new_url = web_strdup(location);
+            if (new_url == RT_NULL)
+            {
+                return -WEBCLIENT_NOMEM;
+            }
+
+            /* close old client session */
             webclient_close(session);
-            return webclient_get(session, location);
+
+            /* create new client session by location url */
+            session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
+            if (session == RT_NULL)
+            {
+                return  -WEBCLIENT_NOMEM;
+            }
+
+            rc = webclient_get(session, new_url);
+
+            web_free(new_url);
+            return rc;
         }
         else if (resp_status != 200)
         {
@@ -915,8 +941,28 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
         /* relocation */
         if ((resp_status == 302 || resp_status == 301) && location)
         {
+            char *new_url;
+
+            new_url = web_strdup(location);
+            if (new_url == RT_NULL)
+            {
+                return -WEBCLIENT_NOMEM;
+            }
+
+            /* close old client session */
             webclient_close(session);
-            return webclient_get_position(session, location, position);
+
+            /* create new client session by location url */
+            session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
+            if (session == RT_NULL)
+            {
+                return  -WEBCLIENT_NOMEM;
+            }
+
+            rc = webclient_get(session, new_url);
+
+            web_free(new_url);
+            return rc;
         }
         else if (resp_status != 206)
         {
