@@ -434,7 +434,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
 #ifdef WEBCLIENT_USING_SAL_TLS
         if (session->is_tls)
         {
-            socket_handle = socket(res->ai_family, SOCK_STREAM, PROTOCOL_TLS_MBED);
+            socket_handle = socket(res->ai_family, SOCK_STREAM, PROTOCOL_TLS);
         }
         else
         {
