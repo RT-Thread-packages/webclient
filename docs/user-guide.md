@@ -14,14 +14,14 @@
 RT-Thread online packages
     IoT - internet of things  --->
 		[*] WebClient: A HTTP/HTTPS Client for RT-Thread
-		[ ]   Enable support tls protocol
 		[ ]   Enable webclient GET/POST samples
+		      Select TLS mode (Not support)  --->
 		      Version (latest)  --->
 ```
 
-**Enable support tls protocol** ：开启对 HTTPS 支持；
-
 **Enable webclient GET/POST samples** ：添加示例代码；
+
+**Select TLS mode** ：配置开启 HTTPS 支持，选择支持的模式；
 
 **Version** ：配置软件包版本号。
 
@@ -57,8 +57,9 @@ struct webclient_session
 
     int content_length;                 //当前接收数据长度（非 chunk 模式）
     size_t content_remainder;           //当前剩余接收数据长度
-
-#ifdef WEBCLIENT_USING_TLS
+	
+    rt_bool_t is_tls;                   //当前连接是否是 HTTPS 连接
+#ifdef WEBCLIENT_USING_MBED_TLS
     MbedTLSSession *tls_session;        // HTTPS 协议相关会话结构体
 #endif
 };

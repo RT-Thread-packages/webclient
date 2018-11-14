@@ -45,8 +45,8 @@ extern long int strtol(const char *nptr, char **endptr, int base);
 
 static int webclient_send(struct webclient_session* session, const unsigned char *buffer, size_t len, int flag)
 {
-#ifdef WEBCLIENT_USING_TLS
-    if(session->tls_session)
+#ifdef WEBCLIENT_USING_MBED_TLS
+    if (session->tls_session)
     {
         return mbedtls_client_write(session->tls_session, buffer, len);
     }
@@ -57,8 +57,8 @@ static int webclient_send(struct webclient_session* session, const unsigned char
 
 static int webclient_recv(struct webclient_session* session, unsigned char *buffer, size_t len, int flag)
 {
-#ifdef WEBCLIENT_USING_TLS
-    if(session->tls_session)
+#ifdef WEBCLIENT_USING_MBED_TLS
+    if (session->tls_session)
     {
         return mbedtls_client_read(session->tls_session, buffer, len);
     }
@@ -79,9 +79,11 @@ static int webclient_read_line(struct webclient_session *session, char *buffer, 
     while (count < size)
     {
         rc = webclient_recv(session, (unsigned char *) &ch, 1, 0);
-#ifdef WEBCLIENT_USING_TLS
-        if(session->tls_session && rc == MBEDTLS_ERR_SSL_WANT_READ)
+#if defined(WEBCLIENT_USING_MBED_TLS) || defined(WEBCLIENT_USING_SAL_TLS)
+        if (session->is_tls && (rc == MBEDTLS_ERR_SSL_WANT_READ || rc == MBEDTLS_ERR_SSL_WANT_WRITE))
+        {
             continue;
+        }    
 #endif 
         if (rc <= 0)
             return rc;
@@ -224,9 +226,11 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         host_addr_new[host_addr_len] = '\0';
         session->host = host_addr_new;
         
-#ifdef WEBCLIENT_USING_TLS
-        if(session->tls_session)
+#ifdef WEBCLIENT_USING_MBED_TLS
+        if (session->tls_session)
+        {
             session->tls_session->host = web_strdup(host_addr_new);
+        }     
 #endif
     }
 
@@ -239,8 +243,8 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
 
         rt_memset(&hint, 0, sizeof(hint));
         
-#ifdef WEBCLIENT_USING_TLS
-        if(session->tls_session)
+#ifdef WEBCLIENT_USING_MBED_TLS
+        if (session->tls_session)
         {
             session->tls_session->port = web_strdup(port_str);
             ret = getaddrinfo(session->tls_session->host, port_str, &hint, res);
@@ -282,7 +286,7 @@ __exit:
     return rc;
 }
 
-#ifdef WEBCLIENT_USING_TLS
+#ifdef WEBCLIENT_USING_MBED_TLS
 /**
  * create and initialize https session.
  *
@@ -351,12 +355,15 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
 
     if (strncmp(URI, "https://", 8) == 0)
     {
-#ifdef WEBCLIENT_USING_TLS
+#if defined(WEBCLIENT_USING_SAL_TLS)
+        session->is_tls = RT_TRUE;
+#elif defined(WEBCLIENT_USING_MBED_TLS)
         if(webclient_open_tls(session, URI) < 0)
         {
             LOG_E("connect failed, https client open URI(%s) failed!", URI);
             return -WEBCLIENT_ERROR;
-        }
+        } 
+        session->is_tls = RT_TRUE;
 #else
         LOG_E("not support https connect, please enable webclient https configure!");
         rc = -WEBCLIENT_ERROR;
@@ -390,7 +397,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
         goto __exit;
     }
 
-#ifdef WEBCLIENT_USING_TLS
+#ifdef WEBCLIENT_USING_MBED_TLS
     if (session->tls_session)
     {
         int tls_ret = 0;
@@ -424,7 +431,19 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
 #endif
 
     {
+#ifdef WEBCLIENT_USING_SAL_TLS
+        if (session->is_tls)
+        {
+            socket_handle = socket(res->ai_family, SOCK_STREAM, PROTOCOL_TLS_MBED);
+        }
+        else
+        {
+            socket_handle = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP);
+        }
+#else
         socket_handle = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP);
+#endif
+
         if (socket_handle < 0)
         {
             LOG_E("connect failed, create socket(%d) error.", socket_handle);
@@ -1181,9 +1200,13 @@ int webclient_read(struct webclient_session *session, unsigned char *buffer, siz
         bytes_read = webclient_recv(session, buffer + total_read, left, 0);
         if (bytes_read <= 0)
         {
-#ifdef WEBCLIENT_USING_TLS
-            if(session->tls_session && bytes_read == MBEDTLS_ERR_SSL_WANT_READ)
+#if defined(WEBCLIENT_USING_SAL_TLS) || defined(WEBCLIENT_USING_MBED_TLS)
+            if(session->is_tls && 
+                (bytes_read == MBEDTLS_ERR_SSL_WANT_READ || bytes_read == MBEDTLS_ERR_SSL_WANT_WRITE))
+            {
                 continue;
+            }
+                
 #endif  
             LOG_E("receive data error(%d).", bytes_read);
 
@@ -1256,9 +1279,12 @@ int webclient_write(struct webclient_session *session, const unsigned char *buff
         bytes_write = webclient_send(session, buffer + total_write, left, 0);
         if (bytes_write <= 0)
         {
-#ifdef WEBCLIENT_USING_TLS
-            if(session->tls_session && bytes_write == MBEDTLS_ERR_SSL_WANT_WRITE)
+#if defined(WEBCLIENT_USING_SAL_TLS) || defined(WEBCLIENT_USING_MBED_TLS)
+            if(session->is_tls && 
+                (bytes_write == MBEDTLS_ERR_SSL_WANT_READ || bytes_write == MBEDTLS_ERR_SSL_WANT_WRITE))
+            {
                 continue;
+            }
 #endif
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
@@ -1303,7 +1329,7 @@ int webclient_close(struct webclient_session *session)
 {
     RT_ASSERT(session);
     
-#ifdef WEBCLIENT_USING_TLS
+#ifdef WEBCLIENT_USING_MBED_TLS
     if (session->tls_session)
     {
         mbedtls_client_close(session->tls_session);

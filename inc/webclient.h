@@ -19,7 +19,7 @@
 
 #include <rtthread.h>
 
-#ifdef WEBCLIENT_USING_TLS
+#if defined(WEBCLIENT_USING_MBED_TLS) || defined(WEBCLIENT_USING_SAL_TLS)
 #include <tls_client.h>
 #endif
 
@@ -96,7 +96,8 @@ struct webclient_session
     int content_length;
     size_t content_remainder;           /* remainder of content length */
 
-#ifdef WEBCLIENT_USING_TLS
+    rt_bool_t is_tls;                   /* HTTPS connect */
+#ifdef WEBCLIENT_USING_MBED_TLS
     MbedTLSSession *tls_session;        /* mbedtls connect session */
 #endif
 };
