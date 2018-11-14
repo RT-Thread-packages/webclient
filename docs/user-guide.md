@@ -13,15 +13,22 @@
 ```shell
 RT-Thread online packages
     IoT - internet of things  --->
-		[*] WebClient: A HTTP/HTTPS Client for RT-Thread
-		[ ]   Enable webclient GET/POST samples
-		      Select TLS mode (Not support)  --->
-		      Version (latest)  --->
+         [*] WebClient: A HTTP/HTTPS Client for RT-Thread
+         [ ]   Enable webclient GET/POST samples
+               Select TLS mode (Not support)  --->
+                   (x) Not support
+                   ( ) SAL TLS support
+                   ( ) MbedTLS support
+              Version (latest)  --->
 ```
 
 **Enable webclient GET/POST samples** ：添加示例代码；
 
 **Select TLS mode** ：配置开启 HTTPS 支持，选择支持的模式；
+
+- **Not support**：不支持 TLS 功能；
+- **SAL TLS support**：配置 SAL 组件中 TLS 功能支持，SAL 组件中抽象 TLS 操作，用户还需要**手动配置开启使用的 TLS 软件包类型**（目前只支持 MbedTLS 软件包）；
+- **MbedTLS support**：配置 MbedTLS 功能支持；
 
 **Version** ：配置软件包版本号。
 
