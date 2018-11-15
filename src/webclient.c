@@ -225,16 +225,23 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         memcpy(host_addr_new, host_addr, host_addr_len);
         host_addr_new[host_addr_len] = '\0';
         session->host = host_addr_new;
-        
-#ifdef WEBCLIENT_USING_MBED_TLS
-        if (session->tls_session)
-        {
-            session->tls_session->host = web_strdup(host_addr_new);
-        }     
-#endif
     }
 
     LOG_D("host address: %s , port: %s", session->host, port_str);
+
+#ifdef WEBCLIENT_USING_MBED_TLS
+    if (session->tls_session)
+    {
+        session->tls_session->port = web_strdup(port_str);
+        session->tls_session->host = web_strdup(session->host);
+        if (session->tls_session->port == RT_NULL || session->tls_session->host == RT_NULL)
+        {
+            return -WEBCLIENT_NOMEM;
+        }
+        
+        return rc;
+    }
+#endif
 
     /* resolve the host name. */
     {
@@ -242,22 +249,6 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         int ret;
 
         rt_memset(&hint, 0, sizeof(hint));
-        
-#ifdef WEBCLIENT_USING_MBED_TLS
-        if (session->tls_session)
-        {
-            session->tls_session->port = web_strdup(port_str);
-            ret = getaddrinfo(session->tls_session->host, port_str, &hint, res);
-            if (ret != 0)
-            {
-                LOG_E("getaddrinfo err: %d '%s'", ret, session->host);
-                rc = -WEBCLIENT_ERROR;          
-            }
-            
-            goto __exit;
-        }
-#endif
-
         ret = getaddrinfo(session->host, port_str, &hint, res);
         if (ret != 0)
         {
@@ -265,8 +256,8 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             rc = -WEBCLIENT_ERROR;
             goto __exit;
         }
-
     }
+
 __exit:
     if (rc != WEBCLIENT_OK)
     {
@@ -379,7 +370,8 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
         goto __exit;
     }
 
-    if (!res)
+    /* Not use 'getaddrinfo()' for https connection */
+    if (session->is_tls == RT_FALSE && res == RT_NULL)
     {
         rc = -WEBCLIENT_ERROR;
         goto __exit;
@@ -411,8 +403,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
         if ((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
         {
             LOG_E("connect failed, https client connect return: -0x%x", -tls_ret);
-            rc = -WEBCLIENT_CONNECT_FAILED;
-            goto __exit;
+            return -WEBCLIENT_CONNECT_FAILED;
         }
 
         socket_handle = session->tls_session->server_fd.fd;
@@ -425,8 +416,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
 
         session->socket = socket_handle;
 
-        rc = WEBCLIENT_OK;
-        goto __exit;
+        return WEBCLIENT_OK;
     }
 #endif
 
