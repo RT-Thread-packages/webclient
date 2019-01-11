@@ -39,7 +39,7 @@ RT-Thread online packages
 
 使用 WebClient 软件包发送 GET/POST 请求一般需要完成如下基本流程：
 
-1. **创建客户端会话结构体**
+（1） **创建客户端会话结构体**
 
 ```c
 struct  webclient_header
@@ -64,7 +64,7 @@ struct webclient_session
 
     int content_length;                 //当前接收数据长度（非 chunk 模式）
     size_t content_remainder;           //当前剩余接收数据长度
-	
+    
     rt_bool_t is_tls;                   //当前连接是否是 HTTPS 连接
 #ifdef WEBCLIENT_USING_MBED_TLS
     MbedTLSSession *tls_session;        // HTTPS 协议相关会话结构体
@@ -86,7 +86,7 @@ if (session == RT_NULL)
 }
 ```
 
-2. **拼接头部数据**
+（2） **拼接头部数据**
 
  WebClient 软件包提供两种请求头部发送方式：
 
@@ -107,7 +107,7 @@ webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data)
 webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 ```
 
-3. **发送 GET/POST 请求**
+（3） **发送 GET/POST 请求**
 
 头部信息添加完成之后，就可以调用 `webclient_get` 函数或者 `webclient_post` 函数发送 GET/POST 请求命令了，函数中主要操作如下：
 
@@ -133,7 +133,7 @@ if ((resp_status = webclient_get(session, URI)) != 200)
 }
 ```
 
-4. **接收响应的数据**
+（4） **接收响应的数据**
 
 发送 GET/POST 请求之后，可以使用 `webclient_read` 函数接收响应的实际数据。因为响应的实际数据可能比较长，所以往往我们需要循环接收响应数据，指导数据接收完毕。
 
@@ -163,7 +163,7 @@ do
 } while (content_pos < content_length);
 ```
 
-5. 关闭并释放客户端会话结构体
+（5） **关闭并释放客户端会话结构体**
 
 请求发送并接收完成之后，需要使用 `webclient_close` 函数关闭并释放客户端会话结构体，完成整个 HTTP 数据交互流程。
 

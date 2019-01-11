@@ -22,10 +22,10 @@ WebClient 软件包提供两个 HTTP Client 示例程序, 分别用于演示软�
 ```shell
 RT-Thread online packages
     IoT - internet of things  --->
-	    [*] WebClient: A HTTP/HTTPS Client for RT-Thread    
-	    [ ]   Enable support tls protocol       
-	    [*]   Enable webclient GET/POST samples # 开启 WebClient 测试例程
-	          Version (latest)  --->            # 开启使用最新版本软件包
+        [*] WebClient: A HTTP/HTTPS Client for RT-Thread    
+        [ ]   Enable support tls protocol       
+        [*]   Enable webclient GET/POST samples # 开启 WebClient 测试例程
+              Version (latest)  --->            # 开启使用最新版本软件包
 ```
 
 - 使用 `pkgs --update` 命令下载软件包
@@ -83,4 +83,5 @@ webclient POST request response data :
 RT-Thread is an open source IoT operating system from China!
 msh /> 
 ```
+
 - 在 MSH 中使用命令 `web_post_test [URI]` 格式命令执行 POST 请求示例程序，其中 URI 为用户自定义的支持 POST 请求的地址。
