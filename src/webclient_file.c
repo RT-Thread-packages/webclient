@@ -277,7 +277,7 @@ int wget(int argc, char** argv)
 {
     if (argc != 3)
     {
-        rt_kprintf("Please using: wget <URI> <filename>");
+        rt_kprintf("Please using: wget <URI> <filename>\n");
         return -1;
     }
 
