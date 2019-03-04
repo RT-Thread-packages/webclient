@@ -49,7 +49,7 @@ int webclient_get_test(int argc, char **argv)
         return -1;
     }
 
-    buffer = (unsigned char *) web_malloc(GET_HEADER_BUFSZ);
+    buffer = (unsigned char *) web_malloc(GET_RESP_BUFSZ);
     if (buffer == RT_NULL)
     {
         rt_kprintf("no memory for receive buffer.\n");

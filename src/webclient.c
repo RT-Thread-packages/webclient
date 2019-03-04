@@ -670,7 +670,28 @@ static int webclient_send_header(struct webclient_session *session, int method)
             webclient_write(session, (unsigned char *) session->header->buffer, session->header->length);
         }
     }
-
+    
+    /* get and echo request header data */
+    {
+        char *header_str, *header_ptr;
+        int header_line_len;
+        LOG_D("request header:");
+        
+        for(header_str = session->header->buffer; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+        {
+            header_line_len = header_ptr - header_str;
+            
+            if (header_line_len > 0)
+            {
+                LOG_D("%.*s", header_line_len, header_str);
+            }
+            header_str = header_ptr + rt_strlen("\r\n");
+        }
+#ifdef WEBCLIENT_DEBUG
+        LOG_RAW("\n");
+#endif
+    }
+    
 __exit:
     return rc;
 }
@@ -697,6 +718,7 @@ int webclient_handle_response(struct webclient_session *session)
     rt_memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
+    LOG_D("response header:");
     /* We now need to read the header information */
     while (1)
     {
@@ -719,6 +741,9 @@ int webclient_handle_response(struct webclient_session *session)
         /* set terminal charater */
         mime_buffer[rc - 1] = '\0';
 
+        /* echo response header data */
+        LOG_D("%s", mime_buffer);
+        
         session->header->length += rc;
 
         if (session->header->length >= session->header->size)
