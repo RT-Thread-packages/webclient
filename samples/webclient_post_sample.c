@@ -81,7 +81,7 @@ int webclient_post_test(int argc, char **argv)
         goto __exit;
     }
 
-    rt_kprintf("webclient POST request response data :\n");
+    rt_kprintf("post response data: \n");
     do
     {
         bytes_read = webclient_read(session, buffer, POST_RESP_BUFSZ);
@@ -117,7 +117,72 @@ __exit:
     return ret;
 }
 
+int webclient_post_smpl_test(int argc, char **argv)
+{
+    char *URI, *request, *header = RT_NULL;
+    int index;
+
+    if (argc == 1)
+    {
+        URI = web_strdup(POST_LOCAL_URI);
+        if(URI == RT_NULL)
+        {
+            rt_kprintf("no memory for create URI buffer.\n");
+            return -1;
+        }
+    }
+    else if (argc == 2)
+    {
+        URI = web_strdup(argv[1]);
+        if(URI == RT_NULL)
+        {
+            rt_kprintf("no memory for create URI buffer.\n");
+            return -1;
+        }
+    }
+    else
+    {
+        rt_kprintf("webclient_post_smpl_test [URI]  - webclient simplify POST request test.\n");
+        return -1;
+    }
+
+    webclient_request_header_add(&header, "Content-Length: %d\r\n", strlen(post_data));
+    webclient_request_header_add(&header, "Content-Type: application/octet-stream\r\n");
+
+    if (webclient_request(URI, (const char *)header, post_data, (unsigned char **)&request) < 0)
+    {
+        rt_kprintf("webclient send post request failed.");
+        web_free(header);
+        web_free(URI);
+        return -1;
+    }
+
+    rt_kprintf("post response data: \n");
+    for (index = 0; index < rt_strlen(request); index++)
+    {
+        rt_kprintf("%c", request[index]);
+    }
+    rt_kprintf("\n");
+
+    if (header)
+    {
+        web_free(header);
+    }
+
+    if (URI)
+    {
+        web_free(URI);
+    }
+
+    if (request)
+    {
+        web_free(request);
+    }
+    return 0;
+}
+
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
-MSH_CMD_EXPORT_ALIAS(webclient_post_test, web_post_test, webclient_post_test [URI]  - webclient POST request test.);
+MSH_CMD_EXPORT_ALIAS(webclient_post_test, web_post, web_post [URI]  - webclient POST request test.);
+MSH_CMD_EXPORT_ALIAS(webclient_post_smpl_test, web_post_smpl, web_post_smpl [URI]  - webclient simplify POST request test.);
 #endif /* FINSH_USING_MSH */
