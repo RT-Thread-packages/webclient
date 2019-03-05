@@ -670,7 +670,28 @@ static int webclient_send_header(struct webclient_session *session, int method)
             webclient_write(session, (unsigned char *) session->header->buffer, session->header->length);
         }
     }
-
+    
+    /* get and echo request header data */
+    {
+        char *header_str, *header_ptr;
+        int header_line_len;
+        LOG_D("request header:");
+        
+        for(header_str = session->header->buffer; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+        {
+            header_line_len = header_ptr - header_str;
+            
+            if (header_line_len > 0)
+            {
+                LOG_D("%.*s", header_line_len, header_str);
+            }
+            header_str = header_ptr + rt_strlen("\r\n");
+        }
+#ifdef WEBCLIENT_DEBUG
+        LOG_RAW("\n");
+#endif
+    }
+    
 __exit:
     return rc;
 }
@@ -697,6 +718,7 @@ int webclient_handle_response(struct webclient_session *session)
     rt_memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
+    LOG_D("response header:");
     /* We now need to read the header information */
     while (1)
     {
@@ -719,6 +741,9 @@ int webclient_handle_response(struct webclient_session *session)
         /* set terminal charater */
         mime_buffer[rc - 1] = '\0';
 
+        /* echo response header data */
+        LOG_D("%s", mime_buffer);
+        
         session->header->length += rc;
 
         if (session->header->length >= session->header->size)
@@ -1423,8 +1448,8 @@ int webclient_response(struct webclient_session *session, unsigned char **respon
         int result_sz;
 
         result_sz = session->content_length;
-        response_buf = web_malloc(result_sz + 1);
-        if (!response_buf)
+        response_buf = web_calloc(1, result_sz + 1);
+        if (response_buf == RT_NULL)
         {
             return -WEBCLIENT_NOMEM;
         }
@@ -1454,6 +1479,59 @@ int webclient_response(struct webclient_session *session, unsigned char **respon
     }
 
     return total_read;
+}
+
+/**
+ * add request(GET/POST) header data. 
+ *
+ * @param request_header add request buffer address
+ * @param fmt fields format
+ *
+ * @return <=0: add header failed
+ *          >0: add header data size
+ */
+
+int webclient_request_header_add(char **request_header, const char *fmt, ...)
+{
+    rt_int32_t length, header_length;
+    char *header;
+    va_list args;
+
+    RT_ASSERT(request_header);
+
+    if (*request_header == RT_NULL)
+    {
+        header = rt_calloc(1, WEBCLIENT_HEADER_BUFSZ);
+        if (header == RT_NULL)
+        {
+            LOG_E("No memory for webclient request header add.");
+            return RT_NULL;
+        }
+        *request_header = header;
+    }
+    else
+    {
+        header = *request_header;
+    }
+
+    va_start(args, fmt);
+    header_length = rt_strlen(header);
+    length = rt_vsnprintf(header + header_length, WEBCLIENT_HEADER_BUFSZ - header_length, fmt, args);
+    if (length < 0)
+    {
+        LOG_E("add request header data failed, return length(%d) error.", length);
+        return -WEBCLIENT_ERROR;
+    }
+    va_end(args);
+
+    /* check header size */
+    if (rt_strlen(header) >= WEBCLIENT_HEADER_BUFSZ)
+    {
+        LOG_E("not enough request header data size(%d)!", WEBCLIENT_HEADER_BUFSZ);
+        return -WEBCLIENT_ERROR;
+    }
+
+    return length;
 }
 
 /**
@@ -1487,6 +1565,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 
     if (post_data == RT_NULL)
     {
+        /* send get request */
         session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
         if (session == RT_NULL)
         {
@@ -1496,7 +1575,15 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 
         if (header != RT_NULL)
         {
-            rt_strncpy(session->header->buffer, header, rt_strlen(header));
+            char *header_str, *header_ptr;
+            int header_line_length;
+
+            for(header_str = (char *)header; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+            {
+                header_line_length = header_ptr + rt_strlen("\r\n") - header_str; 
+                webclient_header_fields_add(session, "%.*s", header_line_length, header_str);
+                header_str += header_line_length;
+            }
         }
 
         if (webclient_get(session, URI) != 200)
@@ -1514,6 +1601,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
     }
     else
     {
+        /* send post request */
         session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
         if (session == RT_NULL)
         {
@@ -1523,12 +1611,24 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 
         if (header != RT_NULL)
         {
-            rt_strncpy(session->header->buffer, header, rt_strlen(header));
+            char *header_str, *header_ptr;
+            int header_line_length;
+
+            for(header_str = (char *)header; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+            {
+                header_line_length = header_ptr + rt_strlen("\r\n") - header_str; 
+                webclient_header_fields_add(session, "%.*s", header_line_length, header_str);
+                header_str += header_line_length;
+            }
         }
-        else
+
+        if (rt_strstr(session->header->buffer, "Content-Length") == RT_NULL)
         {
-            /* build header for upload */
             webclient_header_fields_add(session, "Content-Length: %d\r\n", rt_strlen(post_data));
+        }
+
+        if (rt_strstr(session->header->buffer, "Content-Type") == RT_NULL)
+        {
             webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
         }
 
@@ -1544,11 +1644,6 @@ int webclient_request(const char *URI, const char *header, const char *post_data
             rc = -WEBCLIENT_ERROR;
             goto __exit;
         }
-    }
-
-    if (header != RT_NULL)
-    {
-        rt_strncpy(session->header->buffer, header, rt_strlen(header));
     }
 
 __exit:

@@ -23,8 +23,9 @@ WebClient 软件包提供两个 HTTP Client 示例程序, 分别用于演示软�
 RT-Thread online packages
     IoT - internet of things  --->
         [*] WebClient: A HTTP/HTTPS Client for RT-Thread    
-        [ ]   Enable support tls protocol       
+        [ ]   Enable debug log output       
         [*]   Enable webclient GET/POST samples # 开启 WebClient 测试例程
+              Select TLS mode (Not support)  --->
               Version (latest)  --->            # 开启使用最新版本软件包
 ```
 
@@ -50,17 +51,22 @@ GET 请求示例流程：
 
 GET 请求示例使用方式有如下两种：
 
-- 在 MSH 中使用命令 `web_get_test` 执行 GET 请求示例程序，可以获取并打印显示默认网址下载的文件信息，如下图 LOG 显示：
+- 在 MSH 中使用命令 `web_get_test` 执行 GET 请求示例程序，可以获取并打印显示默认网址下载的文件信息;在 MSH 中使用命令 `web_get_test -s` 执行 POST 请求示例程序，使用简化接口（webclient_request 接口）发送 GET请求，适用于简短数据的收发。如下图 LOG 显示：
 
 ```c
-msh />web_get_test
-webclient GET request response data :
+msh />web_get_test 
+webclient get response data: 
+RT-Thread is an open source IoT operating system from China, which has strong scalability: from a tiny kernel running on a tiny core, for example ARM Cortex-M0, or Cortex-M3/4/7, to a rich feature system running on MIPS32, ARM Cortex-A8, ARM Cortex-A9 DualCore etc.
+
+msh />web_get_test -s
+webclient send get request by simplify request interface.
+webclient get response data: 
 RT-Thread is an open source IoT operating system from China, which has strong scalability: from a tiny kernel running on a tiny core, for example ARM Cortex-M0, or Cortex-M3/4/7, to a rich feature system running on MIPS32, ARM Cortex-A8, ARM Cortex-A9 DualCore etc.
 
 msh />
 ```
 
-- 在 MSH 中使用命令 `web_get_test [URI]` 格式命令执行 GET 请求示例程序，其中 URI 为用户自定义的支持 GET 请求的地址。
+- 在 MSH 中使用命令 `web_get_test [URI]`  或 `web_get_test -s [URI]` 格式命令执行 GET 请求示例程序，其中 URI 为用户自定义的支持 GET 请求的地址。
 
 ### POST 请求示例
 
@@ -75,13 +81,18 @@ POST 请求示例流程如下：
 
 POST 请求示例使用方式有如下两种：
 
-- 在 MSH 中使用命令 `web_post_test` 执行 POST 请求示例程序，可以获取并打印显示响应数据（默认 POST 请求的地址是类似于回显的地址，会返回上传的数据），如下图 LOG 显示：
+- 在 MSH 中使用命令 `web_post_test` 执行 POST 请求示例程序，可以获取并打印显示响应数据（默认 POST 请求的地址是类似于回显的地址，会返回上传的数据）；在 MSH 中使用命令 `web_post_test -s` 执行 POST 请求示例程序，使用简化接口（webclient_request 接口）发送 POST 请求，适用于简短数据的收发。如下图 LOG 显示：
 
 ```c
 msh />web_post_test
-webclient POST request response data :
+webclient post response data :
 RT-Thread is an open source IoT operating system from China!
 msh /> 
+msh />web_post_test -s
+webclient send post request by simplify request interface.
+webclient post response data: 
+RT-Thread is an open source IoT operating system from China!
+msh />
 ```
 
-- 在 MSH 中使用命令 `web_post_test [URI]` 格式命令执行 POST 请求示例程序，其中 URI 为用户自定义的支持 POST 请求的地址。
+- 在 MSH 中使用命令 `web_post_test [URI]` 或者 `web_post_test -s [URI]` 格式命令执行 POST 请求示例程序，其中 URI 为用户自定义的支持 POST 请求的地址。

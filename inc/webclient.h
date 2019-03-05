@@ -128,6 +128,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
 /* send HTTP POST/GET request, and get response data */
 int webclient_response(struct webclient_session *session, unsigned char **response);
 int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response);
+int webclient_request_header_add(char **request_header, const char *fmt, ...);
 int webclient_resp_status_get(struct webclient_session *session);
 int webclient_content_length_get(struct webclient_session *session);
 
