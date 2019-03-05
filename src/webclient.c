@@ -1095,6 +1095,7 @@ static int webclient_next_chunk(struct webclient_session *session)
 
     RT_ASSERT(session);
 
+    rt_memset(line, 0x00, sizeof(line));
     length = webclient_read_line(session, line, sizeof(line));
     if (length > 0)
     {

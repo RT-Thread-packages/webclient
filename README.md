@@ -66,6 +66,8 @@ RT-Thread online packages
                Version (latest)  --->
 ```
 
+**Enable debug log output**：开启调试日志显示，可以用于查看请求和响应的头部数据信息；
+
 **Enable webclient GET/POST samples** ：添加示例代码；
 
 **Select TLS mode** ：配置开启 HTTPS 支持，选择支持的模式；
