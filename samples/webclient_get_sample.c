@@ -16,38 +16,14 @@
 
 #define GET_LOCAL_URI                  "http://www.rt-thread.com/service/rt-thread.txt"
 
-int webclient_get_test(int argc, char **argv)
+/* send HTTP GET request by common request interface, it used to receive longer data */
+static int webclient_get_comm(const char *uri)
 {
     struct webclient_session* session = RT_NULL;
     unsigned char *buffer = RT_NULL;
-    char *URI = RT_NULL;
     int index, ret = 0;
     int bytes_read, resp_status;
     int content_length = -1;
-
-    if (argc == 1)
-    {
-        URI = web_strdup(GET_LOCAL_URI);
-        if(URI == RT_NULL)
-        {
-            rt_kprintf("no memory for create URI buffer.\n");
-            return -1;
-        }
-    }
-    else if (argc == 2)
-    {
-        URI = web_strdup(argv[1]);
-        if(URI == RT_NULL)
-        {
-            rt_kprintf("no memory for create URI buffer.\n");
-            return -1;
-        }
-    }
-    else
-    {
-        rt_kprintf("webclient_get_test [URI]  - webclient GET request test.\n");
-        return -1;
-    }
 
     buffer = (unsigned char *) web_malloc(GET_RESP_BUFSZ);
     if (buffer == RT_NULL)
@@ -67,14 +43,14 @@ int webclient_get_test(int argc, char **argv)
     }
 
     /* send GET request by default header */
-    if ((resp_status = webclient_get(session, URI)) != 200)
+    if ((resp_status = webclient_get(session, uri)) != 200)
     {
         rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
         ret = -RT_ERROR;
         goto __exit;
     }
 
-    rt_kprintf("get response data: \n");
+    rt_kprintf("webclient get response data: \n");
 
     content_length = webclient_content_length_get(session);
     if (content_length < 0)
@@ -132,52 +108,23 @@ __exit:
         web_free(buffer);
     }
 
-    if (URI)
-    {
-        web_free(URI);
-    }
-
     return ret;
 }
 
-
-int webclient_get_smpl_test(int argc, char **argv)
+/* send HTTP GET request by simplify request interface, it used to received shorter data */
+static int webclient_get_smpl(const char *uri)
 {
-    char *URI, *request;
+    char *request = RT_NULL;
     int index;
 
-    if (argc == 1)
-    {
-        URI = web_strdup(GET_LOCAL_URI);
-        if(URI == RT_NULL)
-        {
-            rt_kprintf("no memory for create URI buffer.\n");
-            return -1;
-        }
-    }
-    else if (argc == 2)
-    {
-        URI = web_strdup(argv[1]);
-        if(URI == RT_NULL)
-        {
-            rt_kprintf("no memory for create URI buffer.\n");
-            return -1;
-        }
-    }
-    else
-    {
-        rt_kprintf("webclient_get_smpl_test [URI]  - webclient simplify GET request test.\n");
-        return -1;
-    }
-
-    if (webclient_request(URI, RT_NULL, RT_NULL, (unsigned char **)&request) < 0)
+    if (webclient_request(uri, RT_NULL, RT_NULL, (unsigned char **)&request) < 0)
     {
         rt_kprintf("webclient send get request failed.");
-        web_free(URI);
-        return -1;
+        return -RT_ERROR;
     }
 
-    rt_kprintf("get response data: \n");
+    rt_kprintf("webclient send get request by simplify request interface.\n");
+    rt_kprintf("webclient get response data: \n");
     for (index = 0; index < rt_strlen(request); index++)
     {
         rt_kprintf("%c", request[index]);
@@ -189,9 +136,65 @@ int webclient_get_smpl_test(int argc, char **argv)
         web_free(request);
     }
 
-    if (URI)
+    return 0;
+}
+
+
+int webclient_get_test(int argc, char **argv)
+{
+    char *uri = RT_NULL;
+
+    if (argc == 1)
     {
-        web_free(URI);
+        uri = web_strdup(GET_LOCAL_URI);
+        if(uri == RT_NULL)
+        {
+            rt_kprintf("no memory for create get request uri buffer.\n");
+            return -RT_ENOMEM;
+        }
+
+        webclient_get_comm(uri);
+    }
+    else if (argc == 2)
+    {
+        if (rt_strcmp(argv[1], "-s") == 0)
+        {
+            uri = web_strdup(GET_LOCAL_URI);
+            if(uri == RT_NULL)
+            {
+                rt_kprintf("no memory for create get request uri buffer.\n");
+                return -RT_ENOMEM;
+            }
+
+            webclient_get_smpl(uri);
+        }
+        else
+        {
+            uri = web_strdup(argv[1]);
+            if(uri == RT_NULL)
+            {
+                rt_kprintf("no memory for create get request uri buffer.\n");
+                return -RT_ENOMEM;
+            }
+            webclient_get_comm(uri);
+        }
+    }
+    else if(argc == 3 && rt_strcmp(argv[1], "-s") == 0)
+    {
+        uri = web_strdup(argv[2]);
+        if(uri == RT_NULL)
+        {
+            rt_kprintf("no memory for create get request uri buffer.\n");
+            return -RT_ENOMEM;
+        }
+
+        webclient_get_smpl(uri);
+    }
+    else
+    {
+        rt_kprintf("web_get_test [URI]     - webclient GET request test.\n");
+        rt_kprintf("web_get_test -s [URI]  - webclient simplify GET request test.\n");
+        return -RT_ERROR;
     }
 
     return 0;
@@ -199,6 +202,5 @@ int webclient_get_smpl_test(int argc, char **argv)
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
-MSH_CMD_EXPORT_ALIAS(webclient_get_test, web_get, web_get [URI]  webclient GET request test);
-MSH_CMD_EXPORT_ALIAS(webclient_get_smpl_test, web_get_smpl, web_get_smpl [URI]  webclient simplify GET request test);
+MSH_CMD_EXPORT_ALIAS(webclient_get_test, web_get_test, webclient get request test);
 #endif /* FINSH_USING_MSH */
