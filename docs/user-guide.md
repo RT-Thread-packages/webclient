@@ -14,6 +14,7 @@
 RT-Thread online packages
     IoT - internet of things  --->
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
+         [ ]   Enable debug log output
          [ ]   Enable webclient GET/POST samples
                Select TLS mode (Not support)  --->
                    (x) Not support
@@ -21,6 +22,8 @@ RT-Thread online packages
                    ( ) MbedTLS support
               Version (latest)  --->
 ```
+
+**Enable debug log output**：开启调试日志显示，可以用于查看请求和响应的头部数据信息；
 
 **Enable webclient GET/POST samples** ：添加示例代码；
 
@@ -273,7 +276,10 @@ webclient_close(session);
     多用于接收数据长度较小，且头部信息已经拼接给出的 GET 请求。
 
 ```c
-char *result;    
+char *result, *header = RT_NULL;
+
+/* 拼接自定义头部数据 */
+webclient_request_header_add(&header, "User-Agent: RT-Thread HTTP Agent\r\n");
 
 webclient_request(URI, header, NULL, &result);
 
@@ -341,8 +347,13 @@ webclient_close(session);
 
 ```c
 char *post_data = "abcdefg";
+char *header = RT_NULL;
 
-webclient_request(URI, NULL, post_data, NULL);
+/* 拼接自定义头部数据 */
+webclient_request_header_add(&header, "Content-Length: %d\r\n", strlen(post_data));
+webclient_request_header_add(&header, "Content-Type: application/octet-stream\r\n");
+
+webclient_request(URI, header, post_data, NULL);
 ```
 
 ## 常见问题
@@ -355,7 +366,7 @@ webclient_request(URI, NULL, post_data, NULL);
 
 - 原因：使用 HTTPS 地址但是没有开启 HTTPS 支持。
 
-- 解决方法：在 WebClient 软件包 menuconfig 配置选项中开启 `Enable support tls protocol` 选项支持。
+- 解决方法：在 WebClient 软件包 menuconfig 配置选项中  选择 `Select TLS mode` 选项为 `MbedTLS support` 或者 `SAL TLS support`。
 
 ### 头部数据长度超出
 

@@ -202,6 +202,23 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 | `>0`              | 成功接收数据的长度                  |
 | <=0               | 接收数据失败                        |
 
+## 拼接请求头部数据
+
+```c
+int webclient_request_header_add(char **request_header, const char *fmt, ...);
+```
+
+该函数适用于 webclient_request 函数发送请求之前，头部数据的拼接和添加。
+
+| 参数              | 描述                                |
+|:------------------|:-----------------------------------|
+|request_header     | 请求头部数据缓冲区地址               |
+|fmt                | 添加字段数据的表达式                 |
+|...                | 添加的字段数据，为可变参数           |
+| **返回**          | **描述**                           |
+| `>0`              | 成功添加的字段数据的长度              |
+| <=0               | 头部数据添加失败或内存不足            |
+
 
 ## 获取 HTTP 响应状态码
 
