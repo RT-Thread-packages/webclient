@@ -1126,6 +1126,7 @@ static int webclient_next_chunk(struct webclient_session *session)
         /* end of chunks */
         closesocket(session->socket);
         session->socket = -1;
+        session->chunk_sz = -1;
     }
 
     return session->chunk_sz;
@@ -1149,6 +1150,12 @@ int webclient_read(struct webclient_session *session, unsigned char *buffer, siz
     int left;
 
     RT_ASSERT(session);
+
+    /* get next chunk size is zero, client is already closed, return zero */
+    if (session->chunk_sz < 0)
+    {
+        return 0;
+    }
 
     if (session->socket < 0)
     {
