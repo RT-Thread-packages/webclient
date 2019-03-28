@@ -889,6 +889,9 @@ int webclient_get(struct webclient_session *session, const char *URI)
 
     /* handle the response header of webclient server */
     resp_status = webclient_handle_response(session);
+
+    LOG_D("get position handle response(%d).", resp_status); 
+
     if (resp_status > 0)
     {
         const char *location = webclient_header_fields_get(session, "Location");
@@ -918,11 +921,6 @@ int webclient_get(struct webclient_session *session, const char *URI)
 
             web_free(new_url);
             return rc;
-        }
-        else if (resp_status != 200)
-        {
-            LOG_E("get failed, handle response(%d) error!", resp_status);
-            return resp_status;
         }
     }
 
@@ -968,6 +966,9 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
 
     /* handle the response header of webclient server */
     resp_status = webclient_handle_response(session);
+
+    LOG_D("get position handle response(%d).", resp_status); 
+
     if (resp_status > 0)
     {
         const char *location = webclient_header_fields_get(session, "Location");
@@ -997,11 +998,6 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
 
             web_free(new_url);
             return rc;
-        }
-        else if (resp_status != 206)
-        {
-            LOG_E("get failed, handle response(%d) error!", resp_status);
-            return resp_status;
         }
     }
 
@@ -1050,11 +1046,7 @@ int webclient_post(struct webclient_session *session, const char *URI, const cha
 
         /* resolve response data, get http status code */
         resp_status = webclient_handle_response(session);
-        if (resp_status != 200)
-        {
-            LOG_E("post failed, handle response(%d) error.", resp_status);
-            return resp_status;
-        }
+        LOG_D("post handle response(%d).", resp_status); 
     }
 
     return resp_status;
