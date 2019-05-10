@@ -197,7 +197,12 @@ int webclient_get_test(int argc, char **argv)
         return -RT_ERROR;
     }
 
-    return 0;
+    if (uri)
+    {
+        web_free(uri);
+    }
+    
+    return RT_EOK;
 }
 
 #ifdef FINSH_USING_MSH
