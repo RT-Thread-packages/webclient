@@ -181,8 +181,13 @@ int webclient_post_test(int argc, char **argv)
         rt_kprintf("web_post_test -s [uri]  - webclient simplify post request test.\n");
         return -RT_ERROR;
     }
+    
+    if (uri)
+    {
+        web_free(uri);
+    }
 
-    return 0;
+    return RT_EOK;
 }
 
 
