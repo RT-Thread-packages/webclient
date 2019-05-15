@@ -1223,7 +1223,7 @@ int webclient_read(struct webclient_session *session, unsigned char *buffer, siz
             }
                 
 #endif  
-            LOG_E("receive data error(%d).", bytes_read);
+            LOG_D("receive data error(%d).", bytes_read);
 
             if (total_read)
             {
