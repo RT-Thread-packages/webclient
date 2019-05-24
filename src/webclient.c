@@ -994,7 +994,7 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
                 return  -WEBCLIENT_NOMEM;
             }
 
-            rc = webclient_get(session, new_url);
+            rc = webclient_get_position(session, new_url, position);
 
             web_free(new_url);
             return rc;
