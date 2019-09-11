@@ -59,6 +59,7 @@ RT-Thread online packages
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
          [ ]   Enable debug log output
          [ ]   Enable webclient GET/POST samples
+         [ ]   Enable file download feature support
                Select TLS mode (Not support)  --->
                    (x) Not support
                    ( ) SAL TLS support
@@ -69,6 +70,8 @@ RT-Thread online packages
 **Enable debug log output**：开启调试日志显示，可以用于查看请求和响应的头部数据信息；
 
 **Enable webclient GET/POST samples** ：添加示例代码；
+
+**Enable file download feature support** ：开启文件下载功能支持（`wget` 命令支持）；
 
 **Select TLS mode** ：配置开启 HTTPS 支持，选择支持的模式；
 
