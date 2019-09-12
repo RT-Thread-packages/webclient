@@ -25,6 +25,7 @@ RT-Thread online packages
         [*] WebClient: A HTTP/HTTPS Client for RT-Thread    
         [ ]   Enable debug log output       
         [*]   Enable webclient GET/POST samples # 开启 WebClient 测试例程
+        [ ]   Enable file download feature support
               Select TLS mode (Not support)  --->
               Version (latest)  --->            # 开启使用最新版本软件包
 ```
