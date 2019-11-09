@@ -1556,7 +1556,7 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 {
     struct webclient_session *session;
     int rc = WEBCLIENT_OK;
-    int totle_length;
+    int totle_length = 0;
 
     RT_ASSERT(URI);
 
