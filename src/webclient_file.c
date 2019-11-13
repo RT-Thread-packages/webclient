@@ -74,7 +74,7 @@ int webclient_get_file(const char* URI, const char* filename)
         rc = -WEBCLIENT_NOMEM;
         goto __exit;
     }
-	
+
     if (session->content_length < 0)
     {
         while (1)
@@ -158,6 +158,7 @@ int webclient_post_file(const char* URI, const char* filename,
     char *header = RT_NULL, *header_ptr;
     unsigned char *buffer = RT_NULL, *buffer_ptr;
     struct webclient_session* session = RT_NULL;
+    int resp_data_len = 0;
 
     fd = open(filename, O_RDONLY, 0);
     if (fd < 0)
@@ -171,7 +172,7 @@ int webclient_post_file(const char* URI, const char* filename,
     length = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    buffer = (unsigned char *) web_malloc(WEBCLIENT_RESPONSE_BUFSZ);
+    buffer = (unsigned char *) web_calloc(1, WEBCLIENT_RESPONSE_BUFSZ);
     if (buffer == RT_NULL)
     {
         LOG_D("post file failed, no memory for response buffer.");
@@ -179,7 +180,7 @@ int webclient_post_file(const char* URI, const char* filename,
         goto __exit;
     }
 
-    header = (char *) web_malloc(WEBCLIENT_HEADER_BUFSZ);
+    header = (char *) web_calloc(1, WEBCLIENT_HEADER_BUFSZ);
     if (header == RT_NULL)
     {
         LOG_D("post file failed, no memory for header buffer.");
@@ -204,7 +205,7 @@ int webclient_post_file(const char* URI, const char* filename,
             "Content-Type: application/octet-stream\r\n\r\n");
     /* calculate content-length */
     length += buffer_ptr - buffer;
-    length += rt_strlen(boundary) + 6; /* add the last boundary */
+    length += rt_strlen(boundary) + 8; /* add the last boundary */
 
     /* build header for upload */
     header_ptr += rt_snprintf(header_ptr,
@@ -221,10 +222,11 @@ int webclient_post_file(const char* URI, const char* filename,
         goto __exit;
     }
 
-    session->header->buffer = web_strdup(header);
+    rt_strncpy(session->header->buffer, header, rt_strlen(header));
+    session->header->length = rt_strlen(session->header->buffer);
 
     rc = webclient_post(session, URI, NULL);
-    if( rc< 0)
+    if(rc < 0)
     {
         goto __exit;
     }
@@ -246,7 +248,32 @@ int webclient_post_file(const char* URI, const char* filename,
 
     /* send last boundary */
     rt_snprintf((char*) buffer, WEBCLIENT_RESPONSE_BUFSZ, "\r\n--%s--\r\n", boundary);
-    webclient_write(session, buffer, rt_strlen(boundary) + 6);
+    webclient_write(session, buffer, rt_strlen(boundary) + 8);
+
+    extern int webclient_handle_response(struct webclient_session *session);
+    if( webclient_handle_response(session) != 200)
+    {
+        rc = -WEBCLIENT_ERROR;
+        goto __exit;
+    }
+
+    resp_data_len = webclient_content_length_get(session);
+    if (resp_data_len > 0)
+    {
+        int bytes_read = 0;
+
+        rt_memset(buffer, 0x00, WEBCLIENT_RESPONSE_BUFSZ);
+        do
+        {
+            bytes_read = webclient_read(session, buffer,
+                resp_data_len < WEBCLIENT_RESPONSE_BUFSZ ? resp_data_len : WEBCLIENT_RESPONSE_BUFSZ);
+            if (bytes_read <= 0)
+            {
+                break;
+            }
+            resp_data_len -= bytes_read;
+        } while(resp_data_len > 0);
+    }
 
 __exit:
     if (fd >= 0)
@@ -269,9 +296,8 @@ __exit:
         web_free(header);
     }
 
-    return 0;
+    return rc;
 }
-
 
 int wget(int argc, char** argv)
 {
