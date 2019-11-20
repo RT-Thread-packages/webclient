@@ -13,6 +13,7 @@
  * 2018-07-26     chenyong     modify log information
  * 2018-08-07     chenyong     modify header processing
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -594,6 +595,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
 
     return RT_NULL;
 }
+
 /**
  * get http response status code.
  *
