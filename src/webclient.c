@@ -46,21 +46,14 @@
 
 extern long int strtol(const char *nptr, char **endptr, int base);
 
-static int _tolower(int c)
-{
-    if (c >= 'A' && c <= 'Z')
-        c ^= 0x20;
-    return c;
-}
-
 static int webclient_strncasecmp(const char *a, const char *b, size_t n)
 {
     uint8_t c1, c2;
     if (n <= 0)
         return 0;
     do {
-        c1 = _tolower(*a++);
-        c2 = _tolower(*b++);
+        c1 = tolower(*a++);
+        c2 = tolower(*b++);
     } while (--n && c1 && c1 == c2);
     return c1 - c2;
 }
