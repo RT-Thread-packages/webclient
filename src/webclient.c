@@ -46,6 +46,38 @@
 
 extern long int strtol(const char *nptr, char **endptr, int base);
 
+static int webclient_strncasecmp(const char *a, const char *b, size_t n)
+{
+    uint8_t c1, c2;
+    if (n <= 0)
+        return 0;
+    do {
+        c1 = tolower(*a++);
+        c2 = tolower(*b++);
+    } while (--n && c1 && c1 == c2);
+    return c1 - c2;
+}
+
+static const char *webclient_strstri(const char* str, const char* subStr)
+{
+    int len = strlen(subStr);
+
+    if(len == 0)
+    {
+        return RT_NULL;
+    }
+
+    while(*str)
+    {
+        if(webclient_strncasecmp(str, subStr, len) == 0)
+        {
+            return str;
+        }
+        ++str;
+    }
+    return RT_NULL;
+}
+
 static int webclient_send(struct webclient_session* session, const unsigned char *buffer, size_t len, int flag)
 {
 #ifdef WEBCLIENT_USING_MBED_TLS
@@ -530,7 +562,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
     resp_buf = session->header->buffer;
     while (resp_buf_len < session->header->length)
     {
-        if (rt_strstr(resp_buf, fields))
+        if (webclient_strstri(resp_buf, fields))
         {
             char *mime_ptr = RT_NULL;
 
@@ -1554,7 +1586,7 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
  */
 int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response)
 {
-    struct webclient_session *session;
+    struct webclient_session *session = RT_NULL;
     int rc = WEBCLIENT_OK;
     int totle_length = 0;
 
