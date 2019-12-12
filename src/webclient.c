@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2019, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,8 +16,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
+#include <ctype.h>
+
 #include <sys/time.h>
 
 #include <webclient.h>
@@ -151,17 +152,23 @@ static int webclient_read_line(struct webclient_session *session, char *buffer, 
  * @return 0 on resolve server address OK, others failed
  *
  * URL example:
- * http://www.rt-thread.org/
+ * http://www.rt-thread.org
+ * http://www.rt-thread.org:80
+ * https://www.rt-thread.org/
  * http://192.168.1.1:80/index.htm
+ * http://[fe80::1]
+ * http://[fe80::1]/
  * http://[fe80::1]/index.html
  * http://[fe80::1]:80/index.html
  */
 static int webclient_resolve_address(struct webclient_session *session, struct addrinfo **res,
-                                     const char *url, char **request)
+                                     const char *url, const char **request)
 {
     int rc = WEBCLIENT_OK;
     char *ptr;
     char port_str[6] = "80"; /* default port of 80(http) */
+    const char *port_ptr;
+    const char *path_ptr;
 
     const char *host_addr = 0;
     int url_len, host_addr_len = 0;
@@ -198,46 +205,40 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             goto __exit;
         }
         host_addr_len = ptr - host_addr;
-
-        ptr = rt_strstr(host_addr + host_addr_len, "/");
-        if (!ptr)
-        {
-            rc = -WEBCLIENT_ERROR;
-            goto __exit;
-        }
-        else if (ptr != (host_addr + host_addr_len + 1))
-        {
-            int port_len = ptr - host_addr - host_addr_len - 2;
-
-            rt_strncpy(port_str, host_addr + host_addr_len + 2, port_len);
-            port_str[port_len] = '\0';
-        }
-
-        *request = (char *) ptr;
     }
-    else /* ipv4 or domain. */
+
+    path_ptr = rt_strstr(host_addr, "/");
+    *request = path_ptr ? path_ptr : "/";
+
+    /* resolve port */
+    port_ptr = rt_strstr(host_addr + host_addr_len, ":");
+    if (port_ptr && path_ptr && (port_ptr < path_ptr))
     {
-        char *port_ptr;
+        int port_len = path_ptr - port_ptr - 1;
 
-        ptr = rt_strstr(host_addr, "/");
-        if (!ptr)
+        rt_strncpy(port_str, port_ptr + 1, port_len);
+        port_str[port_len] = '\0';
+    }
+
+    if (port_ptr && (!path_ptr))
+    {
+        strcpy(port_str, port_ptr + 1);
+    }
+
+    /* ipv4 or domain. */
+    if (!host_addr_len)
+    {
+        if (port_ptr)
         {
-            rc = -WEBCLIENT_ERROR;
-            goto __exit;
-        }
-        host_addr_len = ptr - host_addr;
-        *request = (char *) ptr;
-
-        /* resolve port */
-        port_ptr = rt_strstr(host_addr, ":");
-        if (port_ptr && port_ptr < ptr)
-        {
-            int port_len = ptr - port_ptr - 1;
-
-            rt_strncpy(port_str, port_ptr + 1, port_len);
-            port_str[port_len] = '\0';
-
             host_addr_len = port_ptr - host_addr;
+        }
+        else if (path_ptr)
+        {
+            host_addr_len = path_ptr - host_addr;
+        }
+        else
+        {
+            host_addr_len = strlen(host_addr);
         }
     }
 
@@ -368,7 +369,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     int socket_handle;
     struct timeval timeout;
     struct addrinfo *res = RT_NULL;
-    char *req_url;
+    const char *req_url;
 
     RT_ASSERT(session);
     RT_ASSERT(URI);
