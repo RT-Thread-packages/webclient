@@ -374,9 +374,6 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     RT_ASSERT(session);
     RT_ASSERT(URI);
 
-    /* initialize the socket of session */
-    session->socket = -1;
-
     timeout.tv_sec = WEBCLIENT_DEFAULT_TIMEO;
     timeout.tv_usec = 0;
 
@@ -864,6 +861,8 @@ struct webclient_session *webclient_session_create(size_t header_sz)
         return RT_NULL;
     }
 
+    /* initialize the socket of session */
+    session->socket = -1;
     session->content_length = -1;
 
     session->header = (struct webclient_header *) web_calloc(1, sizeof(struct webclient_header));
@@ -888,6 +887,8 @@ struct webclient_session *webclient_session_create(size_t header_sz)
 
     return session;
 }
+
+static int webclient_clean(struct webclient_session *session);
 
 /**
  *  send GET request to http server and get response header.
@@ -943,15 +944,11 @@ int webclient_get(struct webclient_session *session, const char *URI)
                 return -WEBCLIENT_NOMEM;
             }
 
-            /* close old client session */
-            webclient_close(session);
-
-            /* create new client session by location url */
-            session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
-            if (session == RT_NULL)
-            {
-                return  -WEBCLIENT_NOMEM;
-            }
+            /* clean webclient session */
+            webclient_clean(session);
+            /* clean webclient session header */
+            session->header->length = 0;
+            rt_memset(session->header->buffer, 0, session->header->size);
 
             rc = webclient_get(session, new_url);
 
@@ -1020,15 +1017,11 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
                 return -WEBCLIENT_NOMEM;
             }
 
-            /* close old client session */
-            webclient_close(session);
-
-            /* create new client session by location url */
-            session = webclient_session_create(WEBCLIENT_HEADER_BUFSZ);
-            if (session == RT_NULL)
-            {
-                return  -WEBCLIENT_NOMEM;
-            }
+            /* clean webclient session */
+            webclient_clean(session);
+            /* clean webclient session header */
+            session->header->length = 0;
+            rt_memset(session->header->buffer, 0, session->header->size);
 
             rc = webclient_get_position(session, new_url, position);
 
@@ -1369,17 +1362,9 @@ int webclient_write(struct webclient_session *session, const unsigned char *buff
     return total_write;
 }
 
-/**
- * close a webclient client session.
- *
- * @param session http client session
- *
- * @return 0: close success
- */
-int webclient_close(struct webclient_session *session)
+/* close session socket, free host and request url */
+static int webclient_clean(struct webclient_session *session)
 {
-    RT_ASSERT(session);
-
 #ifdef WEBCLIENT_USING_MBED_TLS
     if (session->tls_session)
     {
@@ -1410,6 +1395,24 @@ int webclient_close(struct webclient_session *session)
     {
         web_free(session->req_url);
     }
+
+    session->content_length = -1;
+
+    return 0;
+}
+
+/**
+ * close a webclient client session.
+ *
+ * @param session http client session
+ *
+ * @return 0: close success
+ */
+int webclient_close(struct webclient_session *session)
+{
+    RT_ASSERT(session);
+
+    webclient_clean(session);
 
     if (session->header && session->header->buffer)
     {
