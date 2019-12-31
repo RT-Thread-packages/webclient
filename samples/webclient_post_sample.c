@@ -21,7 +21,7 @@
 const char *post_data = "RT-Thread is an open source IoT operating system from China!";
 
 /* send HTTP POST request by common request interface, it used to receive longer data */
-static int webclient_post_comm(const char *uri, const char *post_data)
+static int webclient_post_comm(const char *uri, const void *post_data, size_t data_len)
 {
     struct webclient_session* session = RT_NULL;
     unsigned char *buffer = RT_NULL;
@@ -49,7 +49,7 @@ static int webclient_post_comm(const char *uri, const char *post_data)
     webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
     /* send POST request by default header */
-    if ((resp_status = webclient_post(session, uri, post_data)) != 200)
+    if ((resp_status = webclient_post(session, uri, post_data, data_len)) != 200)
     {
         rt_kprintf("webclient POST request failed, response(%d) error.\n", resp_status);
         ret = -RT_ERROR;
@@ -88,15 +88,17 @@ __exit:
 }
 
 /* send HTTP POST request by simplify request interface, it used to received shorter data */
-static int webclient_post_smpl(const char *uri, const char *post_data)
+static int webclient_post_smpl(const char *uri, const char *post_data, size_t data_len)
 {
-    char *request = RT_NULL, *header = RT_NULL;
-    int index;
+    char *response = RT_NULL;
+    char *header = RT_NULL;
+    size_t resp_len = 0;
+    int index = 0;
 
     webclient_request_header_add(&header, "Content-Length: %d\r\n", strlen(post_data));
     webclient_request_header_add(&header, "Content-Type: application/octet-stream\r\n");
 
-    if (webclient_request(uri, (const char *)header, post_data, (unsigned char **)&request) < 0)
+    if (webclient_request(uri, header, post_data, data_len, (void **)&response, &resp_len) < 0)
     {
         rt_kprintf("webclient send post request failed.");
         web_free(header);
@@ -105,9 +107,9 @@ static int webclient_post_smpl(const char *uri, const char *post_data)
 
     rt_kprintf("webclient send post request by simplify request interface.\n");
     rt_kprintf("webclient post response data: \n");
-    for (index = 0; index < rt_strlen(request); index++)
+    for (index = 0; index < resp_len; index++)
     {
-        rt_kprintf("%c", request[index]);
+        rt_kprintf("%c", response[index]);
     }
     rt_kprintf("\n");
 
@@ -116,9 +118,9 @@ static int webclient_post_smpl(const char *uri, const char *post_data)
         web_free(header);
     }
 
-    if (request)
+    if (response)
     {
-        web_free(request);
+        web_free(response);
     }
 
     return 0;
@@ -138,7 +140,7 @@ int webclient_post_test(int argc, char **argv)
             return -RT_ENOMEM;
         }
 
-        webclient_post_comm(uri, post_data);
+        webclient_post_comm(uri, (void *)post_data, rt_strlen(post_data));
     }
     else if (argc == 2)
     {
@@ -151,7 +153,7 @@ int webclient_post_test(int argc, char **argv)
                 return -RT_ENOMEM;
             }
 
-            webclient_post_smpl(uri, post_data);
+            webclient_post_smpl(uri, (void *)post_data, rt_strlen(post_data));
         }
         else
         {
@@ -161,7 +163,7 @@ int webclient_post_test(int argc, char **argv)
                 rt_kprintf("no memory for create post request uri buffer.\n");
                 return -RT_ENOMEM;
             }
-            webclient_post_comm(uri, post_data);
+            webclient_post_comm(uri, (void *)post_data, rt_strlen(post_data));
         }
     }
     else if(argc == 3 && rt_strcmp(argv[1], "-s") == 0)
@@ -173,7 +175,7 @@ int webclient_post_test(int argc, char **argv)
             return -RT_ENOMEM;
         }
 
-        webclient_post_smpl(uri, post_data);
+        webclient_post_smpl(uri, (void *)post_data, rt_strlen(post_data));
     }
     else
     {

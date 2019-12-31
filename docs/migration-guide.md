@@ -143,7 +143,7 @@ session = webclient_session_create(1024)
 
 webclient_header_fields_add(session, "Content-Length: %s", post_data_sz);
 
-webclient_post(session, URI, post_data);
+webclient_post(session, URI, post_data, rt_strlen(post_data));
 
 webclient_close(session);
 ```

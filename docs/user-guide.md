@@ -256,6 +256,7 @@ webclient_close(session)；
 
 ```c
 struct webclient_session *session = NULL;
+size_t length = 0;
 char *result;
 
 session = webclient_create(1024);
@@ -265,7 +266,7 @@ if(webclient_get(session, URI) != 200)
     LOG_E("error!");
 }
 
-webclient_response(session, &result);
+webclient_response(session, &result, &length);
 
 web_free(result);
 webclient_close(session);
@@ -276,12 +277,13 @@ webclient_close(session);
     多用于接收数据长度较小，且头部信息已经拼接给出的 GET 请求。
 
 ```c
+size_t length = 0;
 char *result, *header = RT_NULL;
 
 /* 拼接自定义头部数据 */
 webclient_request_header_add(&header, "User-Agent: RT-Thread HTTP Agent\r\n");
 
-webclient_request(URI, header, NULL, &result);
+webclient_request(URI, header, NULL, 0, &result, &length);
 
 web_free(result);
 ```
@@ -302,7 +304,7 @@ webclient_header_fields_add(session, "Content-Length: %d\r\n", post_data_sz);
 webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
 /* 分段数据上传 webclient_post 第三个传输上传数据为 NULL，改为下面循环上传数据*/
-if( webclient_post(session, URI, NULL) != 200)
+if( webclient_post(session, URI, NULL, 0) != 200)
 {
     LOG_E("error!");
 }
@@ -334,7 +336,7 @@ session = webclient_create(1024);
 webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
 webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
-if(webclient_post(session, URI, post_data) != 200);
+if(webclient_post(session, URI, post_data, rt_strlen(post_data)) != 200);
 {
     LOG_E("error!");
 }
@@ -353,7 +355,7 @@ char *header = RT_NULL;
 webclient_request_header_add(&header, "Content-Length: %d\r\n", strlen(post_data));
 webclient_request_header_add(&header, "Content-Type: application/octet-stream\r\n");
 
-webclient_request(URI, header, post_data, NULL);
+webclient_request(URI, header, post_data, rt_strlen(post_data), NULL, NULL);
 ```
 
 ## 常见问题

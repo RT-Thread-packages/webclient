@@ -58,7 +58,7 @@ static int webclient_get_comm(const char *uri)
         rt_kprintf("webclient GET request type is chunked.\n");
         do
         {
-            bytes_read = webclient_read(session, buffer, GET_RESP_BUFSZ);
+            bytes_read = webclient_read(session, (void *)buffer, GET_RESP_BUFSZ);
             if (bytes_read <= 0)
             {
                 break;
@@ -78,7 +78,7 @@ static int webclient_get_comm(const char *uri)
 
         do
         {
-            bytes_read = webclient_read(session, buffer, 
+            bytes_read = webclient_read(session, (void *)buffer, 
                     content_length - content_pos > GET_RESP_BUFSZ ?
                             GET_RESP_BUFSZ : content_length - content_pos);
             if (bytes_read <= 0)
@@ -114,10 +114,11 @@ __exit:
 /* send HTTP GET request by simplify request interface, it used to received shorter data */
 static int webclient_get_smpl(const char *uri)
 {
-    char *request = RT_NULL;
+    char *response = RT_NULL;
+    size_t resp_len = 0;
     int index;
 
-    if (webclient_request(uri, RT_NULL, RT_NULL, (unsigned char **)&request) < 0)
+    if (webclient_request(uri, RT_NULL, RT_NULL, 0, (void **)&response, &resp_len) < 0)
     {
         rt_kprintf("webclient send get request failed.");
         return -RT_ERROR;
@@ -125,15 +126,15 @@ static int webclient_get_smpl(const char *uri)
 
     rt_kprintf("webclient send get request by simplify request interface.\n");
     rt_kprintf("webclient get response data: \n");
-    for (index = 0; index < rt_strlen(request); index++)
+    for (index = 0; index < rt_strlen(response); index++)
     {
-        rt_kprintf("%c", request[index]);
+        rt_kprintf("%c", response[index]);
     }
     rt_kprintf("\n");
     
-    if (request)
+    if (response)
     {
-        web_free(request);
+        web_free(response);
     }
 
     return 0;
