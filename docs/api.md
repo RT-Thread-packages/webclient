@@ -66,7 +66,7 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
 ## 发送 POST 请求
 
 ```c
-int webclient_post(struct webclient_session *session, const char *URI, const char *post_data);
+int webclient_post(struct webclient_session *session, const char *URI, const void *post_data, size_t data_len);
 ```
 
 发送 HTTP POST 请求命令，上传数据到 HTTP 服务器。
@@ -76,6 +76,7 @@ int webclient_post(struct webclient_session *session, const char *URI, const cha
 |session            | 当前连接会话结构体指针               |
 |URI                | 连接的 HTTP 服务器地址               |
 |post_data          | 需要上传的数据地址                   |
+|data_len | 需要上传数据的长度 |
 | **返回**          | **描述**                            |
 |`>0`               | HTTP 响应状态码                     |
 |<0                 | 发送请求失败                        |
@@ -83,7 +84,7 @@ int webclient_post(struct webclient_session *session, const char *URI, const cha
 ## 发送数据
 
 ```c
-int webclient_write(struct webclient_session *session, const unsigned char *buffer, size_t size);
+int webclient_write(struct webclient_session *session, const void *buffer, size_t size);
 ```
 
 发送数据到连接的服务器。
@@ -101,7 +102,7 @@ int webclient_write(struct webclient_session *session, const unsigned char *buff
 ## 接收数据
 
 ```c
-int webclient_read(struct webclient_session *session, unsigned char *buffer, size_t size);
+int webclient_read(struct webclient_session *session, void *buffer, size_t size);
 ```
 
 从连接的服务器接收数据。
@@ -169,7 +170,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
 ## 接收响应数据到指定地址
 
 ```c
-int webclient_response(struct webclient_session *session, unsigned char **response);
+int webclient_response(struct webclient_session *session, void **response, size_t *resp_len);
 ```
 
 该函数用于发送 GET 或 POST 请求之后， 可以接收响应数据到指定地址。
@@ -178,6 +179,7 @@ int webclient_response(struct webclient_session *session, unsigned char **respon
 |:------------------|:-----------------------------------|
 |session            | 当前连接会话结构体指针               |
 |response           | 存放接收数据的字符串地址             |
+|resp_len | 接收数据的长度的指针 |
 | **返回**          | **描述**                           |
 | `>0`              | 成功接收数据的长度                  |
 | <=0               | 接收数据失败                        |
@@ -185,7 +187,7 @@ int webclient_response(struct webclient_session *session, unsigned char **respon
 ## 发送 GET/POST 请求并接收响应数据
 
 ```c
-int webclient_request(const char *URI, const char *header, const char *post_data, unsigned char **response);
+int webclient_request(const char *URI, const char *header, const void *post_data, size_t data_len, void **response, size_t *resp_len);
 ```
 
 | 参数              | 描述                                |
@@ -197,7 +199,9 @@ int webclient_request(const char *URI, const char *header, const char *post_data
 |post_data          | 发送到服务器的数据                  |
 |                   | = NULL，该发送请求为 GET 请求       |
 |                   | != NULL，该发送请求为 POST 请求     |
+| data_len | 发送数据的长度 |
 |response           | 存放接收数据的字符串地址             |
+|resp_len | 接收数据长度的指针 |
 | **返回**          | **描述**                           |
 | `>0`              | 成功接收数据的长度                  |
 | <=0               | 接收数据失败                        |

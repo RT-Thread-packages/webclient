@@ -225,7 +225,7 @@ int webclient_post_file(const char* URI, const char* filename,
     rt_strncpy(session->header->buffer, header, rt_strlen(header));
     session->header->length = rt_strlen(session->header->buffer);
 
-    rc = webclient_post(session, URI, NULL);
+    rc = webclient_post(session, URI, NULL, 0);
     if(rc < 0)
     {
         goto __exit;
