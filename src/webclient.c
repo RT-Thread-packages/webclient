@@ -19,9 +19,11 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <sys/time.h>
-
 #include <webclient.h>
+
+#if defined(RT_USING_LIBC) || defined(RT_USING_MINILIBC) || defined(RT_LIBC_USING_TIME)
+#include <sys/time.h>
+#endif
 
 /* support both enable and disable "SAL_USING_POSIX" */
 #if defined(RT_USING_SAL)
@@ -1619,7 +1621,7 @@ int webclient_request(const char *URI, const char *header, const void *post_data
         return -WEBCLIENT_ERROR;
     }
 
-    if ((response != RT_NULL && resp_len == RT_NULL) || 
+    if ((response != RT_NULL && resp_len == RT_NULL) ||
         (response == RT_NULL && resp_len != RT_NULL))
     {
         LOG_E("input response data or length failed");
