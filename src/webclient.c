@@ -685,7 +685,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
             }
 
             /* header data end */
-            rt_snprintf(session->header->buffer + session->header->length, session->header->size, "\r\n");
+            rt_snprintf(session->header->buffer + session->header->length, session->header->size - session->header->length, "\r\n");
             session->header->length += 2;
 
             /* check header size */
