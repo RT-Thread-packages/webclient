@@ -1,102 +1,100 @@
 # WebClient
 
-## 1、介绍
+[Chinese](README_ZH.md) | English
 
-WebClient 软件包是 RT-Thread 自主研发的，基于 HTTP 协议的客户端的实现，它提供设备与 HTTP Server 的通讯的基本功能。
+## 1. Introduction
 
-WebClient 软件包功能特点如下：
+The WebClient software package is independently developed by RT-Thread and is based on the implementation of the HTTP protocol client. It provides the basic functions of communication between the device and the HTTP Server.
 
-- 支持 IPV4/IPV6 地址；
-- 支持 GET/POST 请求方法；
-- 支持文件的上传和下载功能；
-- 支持 HTTPS 加密传输；
-- 完善的头部数据添加和处理方式。
+The features of the WebClient software package are as follows:
 
-更多软件包介绍请查看 [详细介绍](docs/introduction.md)。
+- Support IPV4/IPV6 address;
+- Support GET/POST request method;
+- Support file upload and download function;
+- Support HTTPS encrypted transmission;
+- Complete header data addition and processing methods.
 
-### 1.1 目录结构
+For more software package introduction, please refer to [Detailed introduction](docs/introduction.md).
 
-WebClient 软件包目录结构如下所示：
+### 1.1 Directory structure
 
-``` 
+The directory structure of the WebClient software package is as follows:
+
+```
 webclient
 ├───docs 
-│   └───figures                     // 文档使用图片
-│   │   api.md                      // API 使用说明
-│   │   introduction.md             // 介绍文档
-│   │   principle.md                // 实现原理
-│   │   README.md                   // 文档结构说明  
-│   │   samples.md                  // 软件包示例
-│   │   user-guide.md               // 使用说明
-│   └───version.md                  // 版本
-├───inc                             // 头文件
-├───src                             // 源文件				
-├───samples                         // 示例代码
-|   |   webclient_get_sample        // GET 请求示例代码
-│   └───webclient_post_sample       // POST 请求示例代码
-│   LICENSE                         // 软件包许可证
-│   README.md                       // 软件包使用说明
-└───SConscript                      // RT-Thread 默认的构建脚本
+│   └───figures                   // Documents use pictures
+│   │   api.md                    // API instructions
+│   │   introduction.md           // Introduction document
+│   │   principle.md              // Implementation principle
+│   │   README.md                 // Document structure description
+│   │   samples.md                // package sample
+│   │   user-guide.md             // Instructions
+│   └───version.md                // version
+├───inc                           // header file
+├───src                           // source file
+├───samples                       // sample code
+|   |   webclient_get_sample      // GET request sample code
+│   └───webclient_post_sample     // POST request sample code
+│   LICENSE                       // package license
+│   README.md                     // Software package instructions
+└───SConscript                    // RT-Thread default build script
 ```
 
-### 1.2 许可证
+### 1.2 License
 
-WebClient 软件包遵循 Apache-2.0 许可，详见 LICENSE 文件。
+The WebClient software package complies with the Apache-2.0 license, see the LICENSE file for details.
 
-### 1.3 依赖
+### 1.3 Dependency
 
 - RT_Thread 3.0+
 
-- [mbedtls 软件包](https://github.com/RT-Thread-packages/mbedtls)（如果开启 HTTPS 支持）
+- [mbedtls package](https://github.com/RT-Thread-packages/mbedtls) (if HTTPS support is enabled)
 
-## 2、获取软件包
+## 2. Get the software package
 
-使用 WebClient 软件包需要在 RT-Thread 的包管理中选中它，具体路径如下：
+To use the WebClient software package, you need to select it in the RT-Thread package management. The specific path is as follows:
 
 ```
 RT-Thread online packages
-    IoT - internet of things  --->
+    IoT-internet of things --->
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
-         [ ]   Enable webclient GET/POST samples
-               Select TLS mode (Not support)  --->
+         [] Enable webclient GET/POST samples
+               Select TLS mode (Not support) --->
                    (x) Not support
-                   ( ) SAL TLS support
-                   ( ) MbedTLS support
-               Version (latest)  --->
+                   () SAL TLS support
+                   () MbedTLS support
+               Version (latest) --->
 ```
 
-**Enable webclient GET/POST samples** ：添加示例代码；
+**Enable webclient GET/POST samples**: add sample code;
 
-**Select TLS mode** ：配置开启 HTTPS 支持，选择支持的模式；
+**Select TLS mode**: Configure to enable HTTPS support and select the supported mode;
 
-- **Not support**：不支持 TLS 功能；
-- **SAL TLS support**：配置 SAL 组件中 TLS 功能支持，SAL 组件中抽象 TLS 操作，用户还需要**手动配置开启使用的 TLS 软件包类型**（目前只支持 MbedTLS 软件包）；
-- **MbedTLS support**：配置 MbedTLS 功能支持；
+- **Not support**: Does not support TLS function;
+- **SAL TLS support**: Configure the TLS function support in the SAL component, and abstract the TLS operation in the SAL component. Users also need to **manually configure the type of TLS software package used** (currently only supports the MbedTLS package);
+- **MbedTLS support**: configure MbedTLS function support;
 
-**Version** ：配置软件包版本。
+**Version**: Configure the software package version.
 
-配置完成后让 RT-Thread 的包管理器自动更新，或者使用 pkgs --update 命令更新包到 BSP 中。
+After the configuration is complete, let the RT-Thread package manager automatically update, or use the pkgs --update command to update the package to the BSP.
 
-## 3、使用 WebClient 软件包
-- 软件包详细介绍，请参考 [软件包介绍](docs/introduction.md)
+## 3. Use WebClient software package
+- For detailed description of the software package, please refer to [Package Introduction](docs/introduction.md)
+- For detailed sample introduction, please refer to [Sample Document](docs/samples.md) 
+- How to use from scratch, please refer to [User Guide](docs/user-guide.md) 
+- For complete API documentation, please refer to [API Manual](docs/api.md) 
+- The working principle of the software package, please refer to [Working Principle](docs/principle.md)
 
-- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 
+- More **Detailed introduction documents** are located in the [`/docs`](/docs) folder, **Please check before using the package for development**.
 
-- 如何从零开始使用，请参考 [用户指南](docs/user-guide.md)
+## 4. Matters needing attention
 
-- 完整的 API 文档，请参考 [API 手册](docs/api.md)
-
-- 软件包工作原理，请参考 [工作原理](docs/principle.md) 
-
-- 更多**详细介绍文档**位于 [`/docs`](/docs) 文件夹下，**使用软件包进行开发前请务必查看**。
-
-## 4、注意事项
-
- - WebClient 软件包连接 HTTPS 服务器时需要开启 WebClient 中对 TLS 功能的支持。
- - WebClient 软件包版本更新（`V1.0.0 -> 当前最新版 V2.0.0`）后软件包中函数接口和使用流程都有所变化，若开发者代码中使用之前接口，可以适配最新版本接口，或者在版本号配置中选择 `V1.0.0` 版本，具体改动方式可参考软件包 [迁移指南](docs/migration-guide.md)。
+ - When the WebClient software package connects to the HTTPS server, you need to enable the TLS function support in WebClient.
+ - After the WebClient software package version update (`V1.0.0 -> the current latest version V2.0.0`), the function interface and usage process in the software package have changed. If the previous interface is used in the developer code, the latest version interface can be adapted , Or select the `V1.0.0` version in the version number configuration, the specific modification method can refer to the software package [migration guide](docs/migration-guide.md).
 
 
-## 5、联系方式 & 感谢
+## 5. Contact & Thanks
 
-- 维护：RT-Thread 开发团队
-- 主页：https://github.com/RT-Thread-packages/webclient
+- Maintenance: RT-Thread development team
+- Homepage: https://github.com/RT-Thread-packages/webclient
