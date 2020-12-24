@@ -562,7 +562,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
     resp_buf = session->header->buffer;
     while (resp_buf_len < session->header->length)
     {
-        if (webclient_strstri(resp_buf, fields))
+        if (webclient_strstri(resp_buf, fields) == resp_buf)
         {
             char *mime_ptr = RT_NULL;
 
