@@ -562,7 +562,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
     resp_buf = session->header->buffer;
     while (resp_buf_len < session->header->length)
     {
-        if (webclient_strstri(resp_buf, fields))
+        if (webclient_strstri(resp_buf, fields) == resp_buf)
         {
             char *mime_ptr = RT_NULL;
 
@@ -1398,11 +1398,13 @@ static int webclient_clean(struct webclient_session *session)
     if (session->host)
     {
         web_free(session->host);
+        session->host = RT_NULL;
     }
 
     if (session->req_url)
     {
         web_free(session->req_url);
+        session->req_url = RT_NULL;
     }
 
     session->content_length = -1;
