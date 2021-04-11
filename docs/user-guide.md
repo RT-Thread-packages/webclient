@@ -14,6 +14,7 @@
 RT-Thread online packages
     IoT - internet of things  --->
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
+         [ ]   Enable debug log output
          [ ]   Enable webclient GET/POST samples
                Select TLS mode (Not support)  --->
                    (x) Not support
@@ -21,6 +22,8 @@ RT-Thread online packages
                    ( ) MbedTLS support
               Version (latest)  --->
 ```
+
+**Enable debug log output**：开启调试日志显示，可以用于查看请求和响应的头部数据信息；
 
 **Enable webclient GET/POST samples** ：添加示例代码；
 
@@ -135,7 +138,7 @@ if ((resp_status = webclient_get(session, URI)) != 200)
 
 （4） **接收响应的数据**
 
-发送 GET/POST 请求之后，可以使用 `webclient_read` 函数接收响应的实际数据。因为响应的实际数据可能比较长，所以往往我们需要循环接收响应数据，指导数据接收完毕。
+发送 GET/POST 请求之后，可以使用 `webclient_read` 函数接收响应的实际数据。因为响应的实际数据可能比较长，所以往往我们需要循环接收响应数据，直到数据接收完毕。
 
 如下所示为循环接收并打印响应数据方式：
 
@@ -253,6 +256,7 @@ webclient_close(session)；
 
 ```c
 struct webclient_session *session = NULL;
+size_t length = 0;
 char *result;
 
 session = webclient_create(1024);
@@ -262,7 +266,7 @@ if(webclient_get(session, URI) != 200)
     LOG_E("error!");
 }
 
-webclient_response(session, &result);
+webclient_response(session, &result, &length);
 
 web_free(result);
 webclient_close(session);
@@ -273,9 +277,13 @@ webclient_close(session);
     多用于接收数据长度较小，且头部信息已经拼接给出的 GET 请求。
 
 ```c
-char *result;    
+size_t length = 0;
+char *result, *header = RT_NULL;
 
-webclient_request(URI, header, NULL, &result);
+/* 拼接自定义头部数据 */
+webclient_request_header_add(&header, "User-Agent: RT-Thread HTTP Agent\r\n");
+
+webclient_request(URI, header, NULL, 0, &result, &length);
 
 web_free(result);
 ```
@@ -296,7 +304,7 @@ webclient_header_fields_add(session, "Content-Length: %d\r\n", post_data_sz);
 webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
 /* 分段数据上传 webclient_post 第三个传输上传数据为 NULL，改为下面循环上传数据*/
-if( webclient_post(session, URI, NULL) != 200)
+if( webclient_post(session, URI, NULL, 0) != 200)
 {
     LOG_E("error!");
 }
@@ -328,7 +336,7 @@ session = webclient_create(1024);
 webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
 webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
-if(webclient_post(session, URI, post_data) != 200);
+if(webclient_post(session, URI, post_data, rt_strlen(post_data)) != 200);
 {
     LOG_E("error!");
 }
@@ -341,8 +349,13 @@ webclient_close(session);
 
 ```c
 char *post_data = "abcdefg";
+char *header = RT_NULL;
 
-webclient_request(URI, NULL, post_data, NULL);
+/* 拼接自定义头部数据 */
+webclient_request_header_add(&header, "Content-Length: %d\r\n", strlen(post_data));
+webclient_request_header_add(&header, "Content-Type: application/octet-stream\r\n");
+
+webclient_request(URI, header, post_data, rt_strlen(post_data), NULL, NULL);
 ```
 
 ## 常见问题
@@ -355,7 +368,7 @@ webclient_request(URI, NULL, post_data, NULL);
 
 - 原因：使用 HTTPS 地址但是没有开启 HTTPS 支持。
 
-- 解决方法：在 WebClient 软件包 menuconfig 配置选项中开启 `Enable support tls protocol` 选项支持。
+- 解决方法：在 WebClient 软件包 menuconfig 配置选项中  选择 `Select TLS mode` 选项为 `MbedTLS support` 或者 `SAL TLS support`。
 
 ### 头部数据长度超出
 

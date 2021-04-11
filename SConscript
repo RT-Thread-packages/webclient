@@ -3,7 +3,10 @@ from building import *
 cwd  = GetCurrentDir()
 path = [cwd + '/inc']
 
-src  = Glob('src/*.c')
+src  = Glob('src/webclient.c')
+
+if GetDepend(['WEBCLIENT_USING_FILE_DOWMLOAD']):
+    src += Glob('src/webclient_file.c')
 
 if GetDepend(['WEBCLIENT_USING_SAMPLES']):
     src += Glob('samples/*.c')

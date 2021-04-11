@@ -59,8 +59,10 @@ To use the WebClient software package, you need to select it in the RT-Thread pa
 RT-Thread online packages
     IoT-internet of things --->
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
-         [] Enable webclient GET/POST samples
-               Select TLS mode (Not support) --->
+         [ ]   Enable debug log output
+         [ ]   Enable webclient GET/POST samples
+         [ ]   Enable file download feature support
+               Select TLS mode (Not support)  --->
                    (x) Not support
                    () SAL TLS support
                    () MbedTLS support
@@ -68,13 +70,10 @@ RT-Thread online packages
 ```
 
 **Enable webclient GET/POST samples**: add sample code;
-
 **Select TLS mode**: Configure to enable HTTPS support and select the supported mode;
-
 - **Not support**: Does not support TLS function;
 - **SAL TLS support**: Configure the TLS function support in the SAL component, and abstract the TLS operation in the SAL component. Users also need to **manually configure the type of TLS software package used** (currently only supports the MbedTLS package);
 - **MbedTLS support**: configure MbedTLS function support;
-
 **Version**: Configure the software package version.
 
 After the configuration is complete, let the RT-Thread package manager automatically update, or use the pkgs --update command to update the package to the BSP.
@@ -90,9 +89,9 @@ After the configuration is complete, let the RT-Thread package manager automatic
 
 ## 4. Matters needing attention
 
+
  - When the WebClient software package connects to the HTTPS server, you need to enable the TLS function support in WebClient.
  - After the WebClient software package version update (`V1.0.0 -> the current latest version V2.0.0`), the function interface and usage process in the software package have changed. If the previous interface is used in the developer code, the latest version interface can be adapted , Or select the `V1.0.0` version in the version number configuration, the specific modification method can refer to the software package [migration guide](docs/migration-guide.md).
-
 
 ## 5. Contact & Thanks
 
