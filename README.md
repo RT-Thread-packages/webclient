@@ -60,7 +60,7 @@ RT-Thread online packages
     IoT-internet of things --->
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
          [ ]   Enable debug log output
-         [ ]   Enable webclient GET/POST samples
+         [ ]   Enable webclient GET/POST/SHARD samples
          [ ]   Enable file download feature support
                Select TLS mode (Not support)  --->
                    (x) Not support

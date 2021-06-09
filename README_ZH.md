@@ -59,7 +59,7 @@ WebClient 软件包遵循 Apache-2.0 许可，详见 LICENSE 文件。
 RT-Thread online packages
     IoT - internet of things  --->
          [*] WebClient: A HTTP/HTTPS Client for RT-Thread
-         [ ]   Enable webclient GET/POST samples
+         [ ]   Enable webclient GET/POST/SHARD samples
                Select TLS mode (Not support)  --->
                    (x) Not support
                    ( ) SAL TLS support

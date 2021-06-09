@@ -12,6 +12,7 @@
  * 2018-01-04     aozima       add ipv6 address support.
  * 2018-07-26     chenyong     modify log information
  * 2018-08-07     chenyong     modify header processing
+ * 2021-06-09     xiangxistu   add shard download function
  */
 
 #include <stdio.h>
@@ -626,7 +627,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
 
     header = session->header->buffer;
 
-    if (session->header->length == 0)
+    if (session->header->length == 0 && method <= WEBCLIENT_GET)
     {
         /* use default header data */
         if (webclient_header_fields_add(session, "GET %s HTTP/1.1\r\n", session->req_url) < 0)
@@ -662,6 +663,9 @@ static int webclient_send_header(struct webclient_session *session, int method)
                             session->req_url ? session->req_url : "/", header_buffer);
                 else if (method == WEBCLIENT_POST)
                     length = rt_snprintf(session->header->buffer, session->header->size, "POST %s HTTP/1.1\r\n%s",
+                            session->req_url ? session->req_url : "/", header_buffer);
+                else if (method == WEBCLIENT_HEAD)
+                    length = rt_snprintf(session->header->buffer, session->header->size, "HEAD %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 session->header->length = length;
 
@@ -963,19 +967,36 @@ int webclient_get(struct webclient_session *session, const char *URI)
 }
 
 /**
- *  http breakpoint resume.
+ *  register a handle function for http breakpoint resume and shard download.
+ *
+ * @param function
+ *
+ * @return the pointer
+ */
+char *webclient_register_shard_position_function(struct webclient_session *session, int (*handle_function)(char *buffer, int size))
+{
+    session->handle_function = handle_function;
+
+    return (char *)session->handle_function;
+}
+
+/**
+ *  http breakpoint resume and shard download.
  *
  * @param session webclient session
  * @param URI input server URI address
- * @param position last downloaded position
+ * @param the buffer size that you alloc
  *
  * @return <0: send GET request failed
  *         >0: response http status code
  */
-int webclient_get_position(struct webclient_session *session, const char *URI, int position)
+int webclient_shard_position_function(struct webclient_session *session, const char *URI, int size)
 {
     int rc = WEBCLIENT_OK;
     int resp_status = 0;
+    int real_total_len = 0;
+    int start_position, end_position = 0;
+    char *buffer = RT_NULL;
 
     RT_ASSERT(session);
     RT_ASSERT(URI);
@@ -986,50 +1007,83 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
         return rc;
     }
 
-    /* splice header*/
-    if (webclient_header_fields_add(session, "Range: bytes=%d-\r\n", position) <= 0)
-    {
-        rc = -WEBCLIENT_ERROR;
-        return rc;
-    }
-
-    rc = webclient_send_header(session, WEBCLIENT_GET);
+    rc = webclient_send_header(session, WEBCLIENT_HEAD);
     if (rc != WEBCLIENT_OK)
     {
         return rc;
     }
 
-    /* handle the response header of webclient server */
+    /* handle the response header of webclient server by HEAD request */
     resp_status = webclient_handle_response(session);
-
-    LOG_D("get position handle response(%d).", resp_status);
-
-    if (resp_status > 0)
+    if(resp_status >= 0)
     {
-        const char *location = webclient_header_fields_get(session, "Location");
+        real_total_len = webclient_content_length_get(session);
+        LOG_D("The length[%04d] of real data of URI.", real_total_len);
+    }
 
-        /* relocation */
-        if ((resp_status == 302 || resp_status == 301) && location)
+    /* clean header buffer and size */
+    rt_memset(session->header->buffer, 0x00, session->header->size);
+    session->header->length = 0;
+
+    for(start_position = end_position; end_position < real_total_len; start_position = end_position + 1)
+    {
+        RT_ASSERT(start_position < real_total_len);
+        int data_len = 0;
+
+        end_position = start_position + size - 1;
+        if(end_position >= real_total_len)
         {
-            char *new_url;
+            end_position = real_total_len;
+        }
 
-            new_url = web_strdup(location);
-            if (new_url == RT_NULL)
-            {
-                return -WEBCLIENT_NOMEM;
-            }
-
-            /* clean webclient session */
-            webclient_clean(session);
-            /* clean webclient session header */
-            session->header->length = 0;
-            rt_memset(session->header->buffer, 0, session->header->size);
-
-            rc = webclient_get_position(session, new_url, position);
-
-            web_free(new_url);
+        /* splice header and send header */
+        LOG_I("Range: [%04d -> %04d]", start_position, end_position);
+        webclient_header_fields_add(session, "Range: bytes=%d-%d\r\n", start_position, end_position);
+        rc = webclient_send_header(session, WEBCLIENT_GET);
+        if (rc != WEBCLIENT_OK)
+        {
             return rc;
         }
+
+        /* handle the response header of webclient server */
+        resp_status = webclient_handle_response(session);
+
+        LOG_D("get position handle response(%d).", resp_status);
+        if (resp_status > 0)
+        {
+            const char *location = webclient_header_fields_get(session, "Location");
+
+            /* relocation */
+            if ((resp_status == 302 || resp_status == 301) && location)
+            {
+                char *new_url;
+
+                new_url = web_strdup(location);
+                if (new_url == RT_NULL)
+                {
+                    return -WEBCLIENT_NOMEM;
+                }
+
+                /* clean webclient session */
+                webclient_clean(session);
+                /* clean webclient session header */
+                session->header->length = 0;
+                rt_memset(session->header->buffer, 0, session->header->size);
+
+                rc = webclient_shard_position_function(session, new_url, size);
+
+                web_free(new_url);
+                return rc;
+            }
+        }
+
+        /* receive the incoming data */
+        data_len = webclient_response(session, &buffer, RT_NULL);
+        session->handle_function(buffer, data_len);
+
+        /* clean header buffer and size */
+        rt_memset(session->header->buffer, 0x00, session->header->size);
+        session->header->length = 0;
     }
 
     return resp_status;

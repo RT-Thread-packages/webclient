@@ -67,7 +67,7 @@ struct webclient_session
 
     int content_length;                 //当前接收数据长度（非 chunk 模式）
     size_t content_remainder;           //当前剩余接收数据长度
-    
+
     rt_bool_t is_tls;                   //当前连接是否是 HTTPS 连接
 #ifdef WEBCLIENT_USING_MBED_TLS
     MbedTLSSession *tls_session;        // HTTPS 协议相关会话结构体
@@ -201,7 +201,7 @@ while(1)
 {
     webclient_read(session, buffer, bfsz);
     ...
-} 
+}
 
 webclient_close(session);
 ```
@@ -224,28 +224,27 @@ while(1)
 {
     webclient_read(session, buffer, bfsz);
     ...
-} 
+}
 
 webclient_close(session);
 ```
 
-- 发送获取部分数据的 GET 请求（多用于断点续传）
+- 发送获取部分数据的 GET 请求（多用于断点续传/分片下载）
 
 ```c
 struct webclient_session *session = NULL;
 
 session = webclient_create(1024);
 
-if(webclient_get_position(URI, 100) != 206)
-{
-    LOG_E("error!");
-}
+webclient_connect(session, URI);
+webclient_header_fields_add(session, "Range: bytes=%d-%d\r\n", 0, 99);
+webclient_send_header(session, WEBCLIENT_GET);
 
 while(1)
 {
     webclient_read(session, buffer, bfsz);
     ...
-} 
+}
 
 webclient_close(session)；
 ```
@@ -313,7 +312,7 @@ while(1)
 {
     webclient_write(session, post_data, 1024);
     ...
-} 
+}
 
 if( webclient_handle_response(session) != 200)
 {

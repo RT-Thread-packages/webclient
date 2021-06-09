@@ -46,19 +46,19 @@ int webclient_get(struct webclient_session *session, const char *URI);
 |`>0`               | HTTP 响应状态码                     |
 |<0                 | 发送请求失败                        |
 
-## 发送获取部分数据的 GET 请求
+## 获取指定数据大小的 HEAD / GET 请求
 
 ```c
-int webclient_get_position(struct webclient_session *session, const char *URI, int position);
+int webclient_shard_position_function(struct webclient_session *session, const char *URI, int size);
 ```
 
-发送带有 Range 头信息的 HTTP GET 请求命令，多用于完成断点续传功能。
+发送带有 Range 头信息的 HTTP GET/HEAD 请求命令，多用于断点续传 / 分片下载功能。
 
 | 参数              | 描述                                |
 |:------------------|:-----------------------------------|
 |session            | 当前连接会话结构体指针               |
 |URI                | 连接的 HTTP 服务器地址               |
-|position           | 数据偏移量                 |
+|size               | 设定的接收空间                      |
 | **返回**          | **描述**                            |
 |`>0`               | HTTP 响应状态码                     |
 |<0                 | 发送请求失败                        |
