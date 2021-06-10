@@ -22,7 +22,6 @@ static int shard_download_handle(char *buffer, int length)
     int boundary;
 
     /* print the receive data */
-    rt_kprintf("\nReceive, len[%04d]:\n", length);
     for (outindex = 0; outindex < length; outindex = outindex + inindex)
     {
         char print_buffer[CHARACTER_LENGTH + 1] = {0};
@@ -45,7 +44,6 @@ static int shard_download_handle(char *buffer, int length)
         *point = 0;
         rt_kprintf("%04d - %04d: %s\n", outindex, outindex + boundary - 1, print_buffer);
     }
-    rt_kprintf("Total: [%04d]Bytes\n", length);
 
     /* release this buffer if we have handled data */
     web_free(buffer);
@@ -59,7 +57,7 @@ int webclient_shard_download_test(int argc, char **argv)
     struct webclient_session* session = RT_NULL;
     rt_err_t result = RT_EOK;
     char *uri = RT_NULL;
-    int size = 0;
+    int length, size = 0;
     int usage_flag = 0;
 
 
@@ -108,11 +106,14 @@ int webclient_shard_download_test(int argc, char **argv)
         goto __exit;
     }
 
+    /* get the real data length */
+    webclient_shard_head_function(session, uri, &length);
+
     /* register the handle function, you can handle data in the function */
     webclient_register_shard_position_function(session, shard_download_handle);
 
     /* the "memory size" that you can provide in the project and uri */
-    webclient_shard_position_function(session, uri, size);
+    webclient_shard_position_function(session, uri, 0, length, size);
 
     /* clear the handle function */
     webclient_register_shard_position_function(session, RT_NULL);

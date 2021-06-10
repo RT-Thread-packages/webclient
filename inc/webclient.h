@@ -109,8 +109,12 @@ struct webclient_session *webclient_session_create(size_t header_sz);
 
 /* send HTTP GET request */
 int webclient_get(struct webclient_session *session, const char *URI);
-int webclient_shard_position_function(struct webclient_session *session, const char *URI, int size);
 
+/* send HTTP HEAD request */
+int webclient_shard_head_function(struct webclient_session *session, const char *URI, int *length);
+
+/* send HTTP Range parameter, shard download */
+int webclient_shard_position_function(struct webclient_session *session, const char *URI, int start, int length, int mem_size);
 char *webclient_register_shard_position_function(struct webclient_session *session, int (*handle_function)(char *buffer, int size));
 
 /* send HTTP POST request */
