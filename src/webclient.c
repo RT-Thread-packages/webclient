@@ -973,11 +973,11 @@ int webclient_get(struct webclient_session *session, const char *URI)
  *
  * @return the pointer
  */
-char *webclient_register_shard_position_function(struct webclient_session *session, int (*handle_function)(char *buffer, int size))
+int *webclient_register_shard_position_function(struct webclient_session *session, int (*handle_function)(char *buffer, int size))
 {
     session->handle_function = handle_function;
 
-    return (char *)session->handle_function;
+    return (int *)session->handle_function;
 }
 
 /**
@@ -985,7 +985,7 @@ char *webclient_register_shard_position_function(struct webclient_session *sessi
  *
  * @param session webclient session
  * @param URI input server URI address
- * @param the buffer size that you alloc
+ * @param length the length of point
  *
  * @return <0: send GET request failed
  *         >0: response http status code
@@ -1136,7 +1136,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         }
 
         /* receive the incoming data */
-        data_len = webclient_response(session, &buffer, (size_t *)RT_NULL);
+        data_len = webclient_response(session, (void **)&buffer, (size_t *)RT_NULL);
         if(data_len > 0)
         {
             start_position += mem_size;
