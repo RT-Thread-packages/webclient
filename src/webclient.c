@@ -1044,6 +1044,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
 {
     int rc = WEBCLIENT_OK;
     int resp_status = 0;
+    int resp_len = 0;
     char *buffer = RT_NULL;
     int start_position, end_position = 0;
     int total_len = 0;
@@ -1137,7 +1138,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         }
 
         /* receive the incoming data */
-        data_len = webclient_response(session, (void **)&buffer, (size_t *)RT_NULL);
+        data_len = webclient_response(session, (void **)&buffer, &resp_len);
         if(data_len > 0)
         {
             start_position += mem_size;
