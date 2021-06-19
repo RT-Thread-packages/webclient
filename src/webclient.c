@@ -1050,6 +1050,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
 
     RT_ASSERT(session);
     RT_ASSERT(URI);
+    RT_ASSERT(mem_size);
 
     /* set the offset of "Range" and "total_len"  */
     end_position = start;

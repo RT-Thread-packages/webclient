@@ -57,8 +57,9 @@ int webclient_shard_download_test(int argc, char **argv)
     struct webclient_session* session = RT_NULL;
     rt_err_t result = RT_EOK;
     char *uri = RT_NULL;
-    int length, size = 0;
+    int length = 0;
     int usage_flag = 0;
+    int size = 200;
 
 
     if (argc == 1)
