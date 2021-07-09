@@ -214,12 +214,22 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
 
     /* resolve port */
     port_ptr = rt_strstr(host_addr + host_addr_len, ":");
-    if (port_ptr && path_ptr && (port_ptr < path_ptr))
+    if (port_ptr && (!path_ptr || (port_ptr < path_ptr)))
     {
-        int port_len = path_ptr - port_ptr - 1;
-
-        rt_strncpy(port_str, port_ptr + 1, port_len);
-        port_str[port_len] = '\0';
+        if (!path_ptr) 
+        {
+            rt_strcpy(port_str, port_ptr + 1);
+        }
+        else 
+        {
+            int port_len = path_ptr - port_ptr - 1;
+            rt_strncpy(port_str, port_ptr + 1, port_len);
+            port_str[port_len] = '\0';
+        }
+    }
+    else
+    {
+        port_ptr = RT_NULL;
     }
 
     if (port_ptr && (!path_ptr))
