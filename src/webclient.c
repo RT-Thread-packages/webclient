@@ -21,9 +21,8 @@
 
 #include <webclient.h>
 
-#if defined(RT_USING_LIBC) || defined(RT_USING_MINILIBC) || defined(RT_LIBC_USING_TIME)
+#include <sys/errno.h>
 #include <sys/time.h>
-#endif
 
 /* support both enable and disable "SAL_USING_POSIX" */
 #if defined(RT_USING_SAL)
