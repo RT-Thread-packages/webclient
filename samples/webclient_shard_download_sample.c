@@ -114,7 +114,11 @@ int webclient_shard_download_test(int argc, char **argv)
     webclient_register_shard_position_function(session, shard_download_handle);
 
     /* the "memory size" that you can provide in the project and uri */
-    webclient_shard_position_function(session, uri, 0, length, size);
+    result = webclient_shard_position_function(session, uri, 0, length, size);
+    if(result != WEBCLIENT_OK)
+    {
+        rt_kprintf("web shard download, test failed!\n");
+    }
 
     /* clear the handle function */
     webclient_register_shard_position_function(session, RT_NULL);

@@ -1043,6 +1043,7 @@ int webclient_shard_head_function(struct webclient_session *session, const char 
 int webclient_shard_position_function(struct webclient_session *session, const char *URI, int start, int length, int mem_size)
 {
     int rc = WEBCLIENT_OK;
+    int result = RT_EOK;
     int resp_status = 0;
     int resp_len = 0;
     char *buffer = RT_NULL;
@@ -1142,7 +1143,11 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         if(data_len > 0)
         {
             start_position += mem_size;
-            session->handle_function(buffer, data_len);
+            result = session->handle_function(buffer, data_len);
+            if(result != RT_EOK)
+            {
+                return -WEBCLIENT_ERROR;
+            }
         }
         else
         {
