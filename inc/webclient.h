@@ -18,6 +18,7 @@
 #define __WEBCLIENT_H__
 
 #include <rtthread.h>
+#include <stddef.h>
 
 #if defined(WEBCLIENT_USING_MBED_TLS) || defined(WEBCLIENT_USING_SAL_TLS)
 #include <tls_client.h>
