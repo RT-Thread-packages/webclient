@@ -1181,7 +1181,6 @@ int webclient_shard_position_function(struct webclient_session *session, const c
  *
  * @param session webclient session
  * @param URI input server URI address
- * @param header POST request header, can't be empty
  * @param post_data data send to the server
  *                = NULL: just connect server and send header
  *               != NULL: send header and body data, resolve response data
