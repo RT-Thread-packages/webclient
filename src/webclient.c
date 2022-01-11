@@ -270,7 +270,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             goto __exit;
         }
 
-        memcpy(host_addr_new, host_addr, host_addr_len);
+        rt_memcpy(host_addr_new, host_addr, host_addr_len);
         host_addr_new[host_addr_len] = '\0';
         session->host = host_addr_new;
     }
