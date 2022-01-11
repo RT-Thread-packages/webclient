@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2022, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -78,7 +78,7 @@ static int webclient_get_comm(const char *uri)
 
         do
         {
-            bytes_read = webclient_read(session, (void *)buffer, 
+            bytes_read = webclient_read(session, (void *)buffer,
                     content_length - content_pos > GET_RESP_BUFSZ ?
                             GET_RESP_BUFSZ : content_length - content_pos);
             if (bytes_read <= 0)
@@ -131,7 +131,7 @@ static int webclient_get_smpl(const char *uri)
         rt_kprintf("%c", response[index]);
     }
     rt_kprintf("\n");
-    
+
     if (response)
     {
         web_free(response);
@@ -202,7 +202,7 @@ int webclient_get_test(int argc, char **argv)
     {
         web_free(uri);
     }
-    
+
     return RT_EOK;
 }
 
