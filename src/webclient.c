@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2019, RT-Thread Development Team
+ * Copyright (c) 2006-2022, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -216,11 +216,11 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     port_ptr = rt_strstr(host_addr + host_addr_len, ":");
     if (port_ptr && (!path_ptr || (port_ptr < path_ptr)))
     {
-        if (!path_ptr) 
+        if (!path_ptr)
         {
             rt_strcpy(port_str, port_ptr + 1);
         }
-        else 
+        else
         {
             int port_len = path_ptr - port_ptr - 1;
             rt_strncpy(port_str, port_ptr + 1, port_len);
@@ -270,7 +270,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
             goto __exit;
         }
 
-        memcpy(host_addr_new, host_addr, host_addr_len);
+        rt_memcpy(host_addr_new, host_addr, host_addr_len);
         host_addr_new[host_addr_len] = '\0';
         session->host = host_addr_new;
     }
