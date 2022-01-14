@@ -1054,7 +1054,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
     int rc = WEBCLIENT_OK;
     int result = RT_EOK;
     int resp_status = 0;
-    int resp_len = 0;
+    size_t resp_len = 0;
     char *buffer = RT_NULL;
     int start_position, end_position = 0;
     int total_len = 0;
