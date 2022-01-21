@@ -835,12 +835,13 @@ int webclient_handle_response(struct webclient_session *session)
     transfer_encoding = webclient_header_fields_get(session, "Transfer-Encoding");
     if (transfer_encoding && rt_strcmp(transfer_encoding, "chunked") == 0)
     {
-        char line[16];
-
+        rt_uint16_t len = session->header->size;
+        char *line = rt_malloc(len);
         /* chunk mode, we should get the first chunk size */
-        webclient_read_line(session, line, session->header->size);
-        session->chunk_sz = strtol(line, RT_NULL, 16);
+        webclient_read_line(session, line, len);
+        session->chunk_sz = strtol(line, RT_NULL, len);
         session->chunk_offset = 0;
+        rt_free(line);
     }
 
     if (mime_ptr)
