@@ -1151,7 +1151,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         data_len = webclient_response(session, (void **)&buffer, &resp_len);
         if(data_len > 0)
         {
-            start_position += mem_size;
+            start_position += data_len;
             result = session->handle_function(buffer, data_len);
             if(result != RT_EOK)
             {
