@@ -48,8 +48,8 @@ extern "C" {
 #define web_strdup                     rt_strdup
 #endif
 
-#define WEBCLIENT_SW_VERSION           "2.2.0"
-#define WEBCLIENT_SW_VERSION_NUM       0x20200
+#define WEBCLIENT_SW_VERSION           "2.3.0"
+#define WEBCLIENT_SW_VERSION_NUM       0x20300
 
 #define WEBCLIENT_HEADER_BUFSZ         4096
 #define WEBCLIENT_RESPONSE_BUFSZ       4096
