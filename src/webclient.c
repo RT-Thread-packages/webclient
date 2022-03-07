@@ -178,6 +178,8 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     RT_ASSERT(res);
     RT_ASSERT(request);
 
+    /* make sure *res = NULL before getaddrinfo */
+    *res = RT_NULL;
     url_len = rt_strlen(url);
 
     /* strip protocol(http or https) */
