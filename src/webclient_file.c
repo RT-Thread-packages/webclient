@@ -15,7 +15,8 @@
 #include <webclient.h>
 
 #ifdef RT_USING_DFS
-#include <dfs_posix.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define DBG_ENABLE
 #define DBG_SECTION_NAME               "web.file"
