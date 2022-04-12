@@ -1139,6 +1139,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
                     if(webclient_connect(session, URI) == WEBCLIENT_OK)
                     {
                         LOG_D("webclient reconnect success, retry at [%06d]", end_position);
+                        end_position = start_position;
                         continue;
                     }
                     else
