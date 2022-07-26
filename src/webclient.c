@@ -218,7 +218,11 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     {
         if (!path_ptr)
         {
+#if RTTHREAD_VERSION >= 40100
             rt_strcpy(port_str, port_ptr + 1);
+#else
+            rt_strncpy(port_str, port_ptr + 1, rt_strlen(port_str));
+#endif
         }
         else
         {
