@@ -126,7 +126,7 @@ static int webclient_get_smpl(const char *uri)
 
     rt_kprintf("webclient send get request by simplify request interface.\n");
     rt_kprintf("webclient get response data: \n");
-    for (index = 0; index < rt_strlen(response); index++)
+    for (index = 0; index < strlen(response); index++)
     {
         rt_kprintf("%c", response[index]);
     }
@@ -158,7 +158,7 @@ int webclient_get_test(int argc, char **argv)
     }
     else if (argc == 2)
     {
-        if (rt_strcmp(argv[1], "-s") == 0)
+        if (strcmp(argv[1], "-s") == 0)
         {
             uri = web_strdup(GET_LOCAL_URI);
             if(uri == RT_NULL)
@@ -180,7 +180,7 @@ int webclient_get_test(int argc, char **argv)
             webclient_get_comm(uri);
         }
     }
-    else if(argc == 3 && rt_strcmp(argv[1], "-s") == 0)
+    else if(argc == 3 && strcmp(argv[1], "-s") == 0)
     {
         uri = web_strdup(argv[2]);
         if(uri == RT_NULL)

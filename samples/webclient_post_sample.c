@@ -140,11 +140,11 @@ int webclient_post_test(int argc, char **argv)
             return -RT_ENOMEM;
         }
 
-        webclient_post_comm(uri, (void *)post_data, rt_strlen(post_data));
+        webclient_post_comm(uri, (void *)post_data, strlen(post_data));
     }
     else if (argc == 2)
     {
-        if (rt_strcmp(argv[1], "-s") == 0)
+        if (strcmp(argv[1], "-s") == 0)
         {
             uri = web_strdup(POST_LOCAL_URI);
             if(uri == RT_NULL)
@@ -153,7 +153,7 @@ int webclient_post_test(int argc, char **argv)
                 return -RT_ENOMEM;
             }
 
-            webclient_post_smpl(uri, (void *)post_data, rt_strlen(post_data));
+            webclient_post_smpl(uri, (void *)post_data, strlen(post_data));
         }
         else
         {
@@ -163,10 +163,10 @@ int webclient_post_test(int argc, char **argv)
                 rt_kprintf("no memory for create post request uri buffer.\n");
                 return -RT_ENOMEM;
             }
-            webclient_post_comm(uri, (void *)post_data, rt_strlen(post_data));
+            webclient_post_comm(uri, (void *)post_data, strlen(post_data));
         }
     }
-    else if(argc == 3 && rt_strcmp(argv[1], "-s") == 0)
+    else if(argc == 3 && strcmp(argv[1], "-s") == 0)
     {
         uri = web_strdup(argv[2]);
         if(uri == RT_NULL)
@@ -175,7 +175,7 @@ int webclient_post_test(int argc, char **argv)
             return -RT_ENOMEM;
         }
 
-        webclient_post_smpl(uri, (void *)post_data, rt_strlen(post_data));
+        webclient_post_smpl(uri, (void *)post_data, strlen(post_data));
     }
     else
     {
