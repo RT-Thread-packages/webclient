@@ -178,6 +178,8 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     RT_ASSERT(res);
     RT_ASSERT(request);
 
+    /* make sure *res = NULL before getaddrinfo */
+    *res = RT_NULL;
     url_len = strlen(url);
 
     /* strip protocol(http or https) */
@@ -835,12 +837,13 @@ int webclient_handle_response(struct webclient_session *session)
     transfer_encoding = webclient_header_fields_get(session, "Transfer-Encoding");
     if (transfer_encoding && strcmp(transfer_encoding, "chunked") == 0)
     {
-        char line[16];
-
+        rt_uint16_t len = session->header->size;
+        char *line = rt_malloc(len);
         /* chunk mode, we should get the first chunk size */
-        webclient_read_line(session, line, session->header->size);
-        session->chunk_sz = strtol(line, RT_NULL, 16);
+        webclient_read_line(session, line, len);
+        session->chunk_sz = strtol(line, RT_NULL, len);
         session->chunk_offset = 0;
+        rt_free(line);
     }
 
     if (mime_ptr)
@@ -1054,7 +1057,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
     int rc = WEBCLIENT_OK;
     int result = RT_EOK;
     int resp_status = 0;
-    int resp_len = 0;
+    size_t resp_len = 0;
     char *buffer = RT_NULL;
     int start_position, end_position = 0;
     int total_len = 0;
@@ -1136,6 +1139,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
                     if(webclient_connect(session, URI) == WEBCLIENT_OK)
                     {
                         LOG_D("webclient reconnect success, retry at [%06d]", end_position);
+                        end_position = start_position;
                         continue;
                     }
                     else
@@ -1151,7 +1155,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         data_len = webclient_response(session, (void **)&buffer, &resp_len);
         if(data_len > 0)
         {
-            start_position += mem_size;
+            start_position += data_len;
             result = session->handle_function(buffer, data_len);
             if(result != RT_EOK)
             {
