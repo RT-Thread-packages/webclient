@@ -71,7 +71,7 @@ webclient_close(session);
 
 V2.0.0 版本 GET 请求流如下：
 
-- 创建会话结构体 
+- 创建会话结构体
 - 拼接头部数据（函数拼接方式）
 - 发送 GET 请求头部并接收响应
 - 接收服务器下发数据
@@ -145,7 +145,7 @@ session = webclient_session_create(1024)
 
 webclient_header_fields_add(session, "Content-Length: %s", post_data_sz);
 
-webclient_post(session, URI, post_data, rt_strlen(post_data));
+webclient_post(session, URI, post_data, strlen(post_data));
 
 webclient_close(session);
 ```

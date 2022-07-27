@@ -335,7 +335,7 @@ session = webclient_create(1024);
 webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
 webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
 
-if(webclient_post(session, URI, post_data, rt_strlen(post_data)) != 200);
+if(webclient_post(session, URI, post_data, strlen(post_data)) != 200);
 {
     LOG_E("error!");
 }
@@ -354,7 +354,7 @@ char *header = RT_NULL;
 webclient_request_header_add(&header, "Content-Length: %d\r\n", strlen(post_data));
 webclient_request_header_add(&header, "Content-Type: application/octet-stream\r\n");
 
-webclient_request(URI, header, post_data, rt_strlen(post_data), NULL, NULL);
+webclient_request(URI, header, post_data, strlen(post_data), NULL, NULL);
 ```
 
 ## 常见问题

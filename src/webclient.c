@@ -180,7 +180,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
 
     /* make sure *res = NULL before getaddrinfo */
     *res = RT_NULL;
-    url_len = rt_strlen(url);
+    url_len = strlen(url);
 
     /* strip protocol(http or https) */
     if (strncmp(url, "http://", 7) == 0)
@@ -189,7 +189,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     }
     else if (strncmp(url, "https://", 8) == 0)
     {
-        rt_strncpy(port_str, "443", 4);
+        strncpy(port_str, "443", 4);
         host_addr = url + 8;
     }
     else
@@ -202,7 +202,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
     if (host_addr[0] == '[')
     {
         host_addr += 1;
-        ptr = rt_strstr(host_addr, "]");
+        ptr = strstr(host_addr, "]");
         if (!ptr)
         {
             rc = -WEBCLIENT_ERROR;
@@ -211,21 +211,21 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         host_addr_len = ptr - host_addr;
     }
 
-    path_ptr = rt_strstr(host_addr, "/");
+    path_ptr = strstr(host_addr, "/");
     *request = path_ptr ? path_ptr : "/";
 
     /* resolve port */
-    port_ptr = rt_strstr(host_addr + host_addr_len, ":");
+    port_ptr = strstr(host_addr + host_addr_len, ":");
     if (port_ptr && (!path_ptr || (port_ptr < path_ptr)))
     {
         if (!path_ptr)
         {
-            rt_strcpy(port_str, port_ptr + 1);
+            strcpy(port_str, port_ptr + 1);
         }
         else
         {
             int port_len = path_ptr - port_ptr - 1;
-            rt_strncpy(port_str, port_ptr + 1, port_len);
+            strncpy(port_str, port_ptr + 1, port_len);
             port_str[port_len] = '\0';
         }
     }
@@ -298,7 +298,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         struct addrinfo hint;
         int ret;
 
-        rt_memset(&hint, 0, sizeof(hint));
+        memset(&hint, 0, sizeof(hint));
         ret = getaddrinfo(session->host, port_str, &hint, res);
         if (ret != 0)
         {
@@ -533,7 +533,7 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
     RT_ASSERT(session->header->buffer);
 
     va_start(args, fmt);
-    length = rt_vsnprintf(session->header->buffer + session->header->length,
+    length = vsnprintf(session->header->buffer + session->header->length,
             session->header->size - session->header->length, fmt, args);
     va_end(args);
     if (length < 0)
@@ -579,7 +579,7 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
             char *mime_ptr = RT_NULL;
 
             /* jump space */
-            mime_ptr = rt_strstr(resp_buf, ":");
+            mime_ptr = strstr(resp_buf, ":");
             if (mime_ptr != NULL)
             {
                 mime_ptr += 1;
@@ -594,8 +594,8 @@ const char *webclient_header_fields_get(struct webclient_session *session, const
         if (*resp_buf == '\0')
             break;
 
-        resp_buf += rt_strlen(resp_buf) + 1;
-        resp_buf_len += rt_strlen(resp_buf) + 1;
+        resp_buf += strlen(resp_buf) + 1;
+        resp_buf_len += strlen(resp_buf) + 1;
     }
 
     return RT_NULL;
@@ -655,7 +655,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
         if (method != WEBCLIENT_USER_METHOD)
         {
             /* check and add fields header data */
-            if (memcmp(header, "HTTP/1.", rt_strlen("HTTP/1.")))
+            if (memcmp(header, "HTTP/1.", strlen("HTTP/1.")))
             {
                 char *header_buffer = RT_NULL;
                 int length = 0;
@@ -670,13 +670,13 @@ static int webclient_send_header(struct webclient_session *session, int method)
 
                 /* splice http request header data */
                 if (method == WEBCLIENT_GET)
-                    length = rt_snprintf(session->header->buffer, session->header->size, "GET %s HTTP/1.1\r\n%s",
+                    length = snprintf(session->header->buffer, session->header->size, "GET %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 else if (method == WEBCLIENT_POST)
-                    length = rt_snprintf(session->header->buffer, session->header->size, "POST %s HTTP/1.1\r\n%s",
+                    length = snprintf(session->header->buffer, session->header->size, "POST %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 else if (method == WEBCLIENT_HEAD)
-                    length = rt_snprintf(session->header->buffer, session->header->size, "HEAD %s HTTP/1.1\r\n%s",
+                    length = snprintf(session->header->buffer, session->header->size, "HEAD %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 session->header->length = length;
 
@@ -702,7 +702,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
             }
 
             /* header data end */
-            rt_snprintf(session->header->buffer + session->header->length, session->header->size - session->header->length, "\r\n");
+            snprintf(session->header->buffer + session->header->length, session->header->size - session->header->length, "\r\n");
             session->header->length += 2;
 
             /* check header size */
@@ -727,7 +727,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
         int header_line_len;
         LOG_D("request header:");
 
-        for(header_str = session->header->buffer; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+        for(header_str = session->header->buffer; (header_ptr = strstr(header_str, "\r\n")) != RT_NULL; )
         {
             header_line_len = header_ptr - header_str;
 
@@ -735,7 +735,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
             {
                 LOG_D("%.*s", header_line_len, header_str);
             }
-            header_str = header_ptr + rt_strlen("\r\n");
+            header_str = header_ptr + strlen("\r\n");
         }
 #ifdef WEBCLIENT_DEBUG
         LOG_RAW("\n");
@@ -765,7 +765,7 @@ int webclient_handle_response(struct webclient_session *session)
     RT_ASSERT(session);
 
     /* clean header buffer and size */
-    rt_memset(session->header->buffer, 0x00, session->header->size);
+    memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
     LOG_D("response header:");
@@ -811,11 +811,11 @@ int webclient_handle_response(struct webclient_session *session)
         return -WEBCLIENT_NOMEM;
     }
 
-    if (rt_strstr(mime_ptr, "HTTP/1."))
+    if (strstr(mime_ptr, "HTTP/1."))
     {
         char *ptr = mime_ptr;
 
-        ptr += rt_strlen("HTTP/1.x");
+        ptr += strlen("HTTP/1.x");
 
         while (*ptr && (*ptr == ' ' || *ptr == '\t'))
             ptr++;
@@ -835,7 +835,7 @@ int webclient_handle_response(struct webclient_session *session)
     session->content_remainder = session->content_length ? (size_t) session->content_length : 0xFFFFFFFF;
 
     transfer_encoding = webclient_header_fields_get(session, "Transfer-Encoding");
-    if (transfer_encoding && rt_strcmp(transfer_encoding, "chunked") == 0)
+    if (transfer_encoding && strcmp(transfer_encoding, "chunked") == 0)
     {
         rt_uint16_t len = session->header->size;
         char *line = rt_malloc(len);
@@ -966,7 +966,7 @@ int webclient_get(struct webclient_session *session, const char *URI)
             webclient_clean(session);
             /* clean webclient session header */
             session->header->length = 0;
-            rt_memset(session->header->buffer, 0, session->header->size);
+            memset(session->header->buffer, 0, session->header->size);
 
             rc = webclient_get(session, new_url);
 
@@ -1020,7 +1020,7 @@ int webclient_shard_head_function(struct webclient_session *session, const char 
     }
 
     /* clean header buffer and size */
-    rt_memset(session->header->buffer, 0x00, session->header->size);
+    memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
     rc = webclient_send_header(session, WEBCLIENT_HEAD);
@@ -1071,7 +1071,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
     total_len = start + length;
 
     /* clean header buffer and size */
-    rt_memset(session->header->buffer, 0x00, session->header->size);
+    memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
     for(start_position = end_position; total_len != end_position + 1;)
@@ -1120,7 +1120,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
                 webclient_clean(session);
                 /* clean webclient session header */
                 session->header->length = 0;
-                rt_memset(session->header->buffer, 0, session->header->size);
+                memset(session->header->buffer, 0, session->header->size);
 
                 rc = webclient_shard_position_function(session, new_url, start, length, mem_size);
 
@@ -1173,7 +1173,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         }
 
         /* clean header buffer and size */
-        rt_memset(session->header->buffer, 0x00, session->header->size);
+        memset(session->header->buffer, 0x00, session->header->size);
         session->header->length = 0;
     }
 
@@ -1269,11 +1269,11 @@ static int webclient_next_chunk(struct webclient_session *session)
 
     RT_ASSERT(session);
 
-    rt_memset(line, 0x00, sizeof(line));
+    memset(line, 0x00, sizeof(line));
     length = webclient_read_line(session, line, sizeof(line));
     if (length > 0)
     {
-        if (rt_strcmp(line, "\r") == 0)
+        if (strcmp(line, "\r") == 0)
         {
             length = webclient_read_line(session, line, sizeof(line));
             if (length <= 0)
@@ -1711,8 +1711,8 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
     }
 
     va_start(args, fmt);
-    header_length = rt_strlen(header);
-    length = rt_vsnprintf(header + header_length, WEBCLIENT_HEADER_BUFSZ - header_length, fmt, args);
+    header_length = strlen(header);
+    length = vsnprintf(header + header_length, WEBCLIENT_HEADER_BUFSZ - header_length, fmt, args);
     if (length < 0)
     {
         LOG_E("add request header data failed, return length(%d) error.", length);
@@ -1721,7 +1721,7 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
     va_end(args);
 
     /* check header size */
-    if (rt_strlen(header) >= WEBCLIENT_HEADER_BUFSZ)
+    if (strlen(header) >= WEBCLIENT_HEADER_BUFSZ)
     {
         LOG_E("not enough request header data size(%d)!", WEBCLIENT_HEADER_BUFSZ);
         return -WEBCLIENT_ERROR;
@@ -1789,9 +1789,9 @@ int webclient_request(const char *URI, const char *header, const void *post_data
             char *header_str, *header_ptr;
             int header_line_length;
 
-            for(header_str = (char *)header; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+            for(header_str = (char *)header; (header_ptr = strstr(header_str, "\r\n")) != RT_NULL; )
             {
-                header_line_length = header_ptr + rt_strlen("\r\n") - header_str;
+                header_line_length = header_ptr + strlen("\r\n") - header_str;
                 webclient_header_fields_add(session, "%.*s", header_line_length, header_str);
                 header_str += header_line_length;
             }
@@ -1825,20 +1825,20 @@ int webclient_request(const char *URI, const char *header, const void *post_data
             char *header_str, *header_ptr;
             int header_line_length;
 
-            for(header_str = (char *)header; (header_ptr = rt_strstr(header_str, "\r\n")) != RT_NULL; )
+            for(header_str = (char *)header; (header_ptr = strstr(header_str, "\r\n")) != RT_NULL; )
             {
-                header_line_length = header_ptr + rt_strlen("\r\n") - header_str;
+                header_line_length = header_ptr + strlen("\r\n") - header_str;
                 webclient_header_fields_add(session, "%.*s", header_line_length, header_str);
                 header_str += header_line_length;
             }
         }
 
-        if (rt_strstr(session->header->buffer, "Content-Length") == RT_NULL)
+        if (strstr(session->header->buffer, "Content-Length") == RT_NULL)
         {
-            webclient_header_fields_add(session, "Content-Length: %d\r\n", rt_strlen(post_data));
+            webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
         }
 
-        if (rt_strstr(session->header->buffer, "Content-Type") == RT_NULL)
+        if (strstr(session->header->buffer, "Content-Type") == RT_NULL)
         {
             webclient_header_fields_add(session, "Content-Type: application/octet-stream\r\n");
         }
