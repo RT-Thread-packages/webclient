@@ -298,7 +298,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         struct addrinfo hint;
         int ret;
 
-        memset(&hint, 0, sizeof(hint));
+        web_memset(&hint, 0, sizeof(hint));
         ret = getaddrinfo(session->host, port_str, &hint, res);
         if (ret != 0)
         {
@@ -533,7 +533,7 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
     RT_ASSERT(session->header->buffer);
 
     va_start(args, fmt);
-    length = vsnprintf(session->header->buffer + session->header->length,
+    length = web_vsnprintf(session->header->buffer + session->header->length,
             session->header->size - session->header->length, fmt, args);
     va_end(args);
     if (length < 0)
@@ -655,7 +655,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
         if (method != WEBCLIENT_USER_METHOD)
         {
             /* check and add fields header data */
-            if (memcmp(header, "HTTP/1.", strlen("HTTP/1.")))
+            if (web_memcmp(header, "HTTP/1.", strlen("HTTP/1.")))
             {
                 char *header_buffer = RT_NULL;
                 int length = 0;
@@ -670,13 +670,13 @@ static int webclient_send_header(struct webclient_session *session, int method)
 
                 /* splice http request header data */
                 if (method == WEBCLIENT_GET)
-                    length = snprintf(session->header->buffer, session->header->size, "GET %s HTTP/1.1\r\n%s",
+                    length = web_snprintf(session->header->buffer, session->header->size, "GET %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 else if (method == WEBCLIENT_POST)
-                    length = snprintf(session->header->buffer, session->header->size, "POST %s HTTP/1.1\r\n%s",
+                    length = web_snprintf(session->header->buffer, session->header->size, "POST %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 else if (method == WEBCLIENT_HEAD)
-                    length = snprintf(session->header->buffer, session->header->size, "HEAD %s HTTP/1.1\r\n%s",
+                    length = web_snprintf(session->header->buffer, session->header->size, "HEAD %s HTTP/1.1\r\n%s",
                             session->req_url ? session->req_url : "/", header_buffer);
                 session->header->length = length;
 
@@ -702,7 +702,7 @@ static int webclient_send_header(struct webclient_session *session, int method)
             }
 
             /* header data end */
-            snprintf(session->header->buffer + session->header->length, session->header->size - session->header->length, "\r\n");
+            web_snprintf(session->header->buffer + session->header->length, session->header->size - session->header->length, "\r\n");
             session->header->length += 2;
 
             /* check header size */
@@ -765,7 +765,7 @@ int webclient_handle_response(struct webclient_session *session)
     RT_ASSERT(session);
 
     /* clean header buffer and size */
-    memset(session->header->buffer, 0x00, session->header->size);
+    web_memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
     LOG_D("response header:");
@@ -966,7 +966,7 @@ int webclient_get(struct webclient_session *session, const char *URI)
             webclient_clean(session);
             /* clean webclient session header */
             session->header->length = 0;
-            memset(session->header->buffer, 0, session->header->size);
+            web_memset(session->header->buffer, 0, session->header->size);
 
             rc = webclient_get(session, new_url);
 
@@ -1020,7 +1020,7 @@ int webclient_shard_head_function(struct webclient_session *session, const char 
     }
 
     /* clean header buffer and size */
-    memset(session->header->buffer, 0x00, session->header->size);
+    web_memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
     rc = webclient_send_header(session, WEBCLIENT_HEAD);
@@ -1071,7 +1071,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
     total_len = start + length;
 
     /* clean header buffer and size */
-    memset(session->header->buffer, 0x00, session->header->size);
+    web_memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
     for(start_position = end_position; total_len != end_position + 1;)
@@ -1120,7 +1120,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
                 webclient_clean(session);
                 /* clean webclient session header */
                 session->header->length = 0;
-                memset(session->header->buffer, 0, session->header->size);
+                web_memset(session->header->buffer, 0, session->header->size);
 
                 rc = webclient_shard_position_function(session, new_url, start, length, mem_size);
 
@@ -1173,7 +1173,7 @@ int webclient_shard_position_function(struct webclient_session *session, const c
         }
 
         /* clean header buffer and size */
-        memset(session->header->buffer, 0x00, session->header->size);
+        web_memset(session->header->buffer, 0x00, session->header->size);
         session->header->length = 0;
     }
 
@@ -1269,7 +1269,7 @@ static int webclient_next_chunk(struct webclient_session *session)
 
     RT_ASSERT(session);
 
-    memset(line, 0x00, sizeof(line));
+    web_memset(line, 0x00, sizeof(line));
     length = webclient_read_line(session, line, sizeof(line));
     if (length > 0)
     {
@@ -1712,7 +1712,7 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
 
     va_start(args, fmt);
     header_length = strlen(header);
-    length = vsnprintf(header + header_length, WEBCLIENT_HEADER_BUFSZ - header_length, fmt, args);
+    length = web_vsnprintf(header + header_length, WEBCLIENT_HEADER_BUFSZ - header_length, fmt, args);
     if (length < 0)
     {
         LOG_E("add request header data failed, return length(%d) error.", length);

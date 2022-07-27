@@ -29,23 +29,52 @@ extern "C" {
 #endif
 
 #ifndef web_malloc
-#define web_malloc                     rt_malloc
+#define web_malloc                      rt_malloc
 #endif
 
 #ifndef web_calloc
-#define web_calloc                     rt_calloc
+#define web_calloc                      rt_calloc
 #endif
 
 #ifndef web_realloc
-#define web_realloc                    rt_realloc
+#define web_realloc                     rt_realloc
 #endif
 
 #ifndef web_free
-#define web_free                       rt_free
+#define web_free                        rt_free
+#endif
+
+/**
+ * The gcc libc api is not threadsafe,
+ * especially the float type operation.
+ * So, use rt_xxx whose RT-Thread threadsafe api to instead of strandard libc api.
+ */
+#ifndef web_memset
+#define web_memset                      rt_memset
+#endif
+
+#ifndef web_memcpy
+#define web_memcpy                      rt_memcpy
+#endif
+
+#ifndef web_memcmp
+#define web_memcmp                      rt_memcmp
+#endif
+
+#ifndef web_snprintf
+#define web_snprintf                    rt_snprintf
+#endif
+
+#ifndef web_vsnprintf
+#define web_vsnprintf                   rt_vsnprintf
 #endif
 
 #ifndef web_strdup
-#define web_strdup                     rt_strdup
+#define web_strdup                      rt_strdup
+#endif
+
+#ifndef web_strndup
+#define web_strndup                     rt_strndup
 #endif
 
 #define WEBCLIENT_SW_VERSION           "2.3.0"

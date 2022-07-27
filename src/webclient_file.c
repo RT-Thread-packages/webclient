@@ -191,17 +191,17 @@ int webclient_post_file(const char* URI, const char* filename,
     header_ptr = header;
 
     /* build boundary */
-    snprintf(boundary, sizeof(boundary), "----------------------------%012d", rt_tick_get());
+    web_snprintf(boundary, sizeof(boundary), "----------------------------%012d", rt_tick_get());
 
     /* build encapsulated mime_multipart information*/
     buffer_ptr = buffer;
     /* first boundary */
-    buffer_ptr += snprintf((char*) buffer_ptr,
+    buffer_ptr += web_snprintf((char*) buffer_ptr,
             WEBCLIENT_RESPONSE_BUFSZ - (buffer_ptr - buffer), "--%s\r\n", boundary);
-    buffer_ptr += snprintf((char*) buffer_ptr,
+    buffer_ptr += web_snprintf((char*) buffer_ptr,
             WEBCLIENT_RESPONSE_BUFSZ - (buffer_ptr - buffer),
             "Content-Disposition: form-data; %s\r\n", form_data);
-    buffer_ptr += snprintf((char*) buffer_ptr,
+    buffer_ptr += web_snprintf((char*) buffer_ptr,
             WEBCLIENT_RESPONSE_BUFSZ - (buffer_ptr - buffer),
             "Content-Type: application/octet-stream\r\n\r\n");
     /* calculate content-length */
@@ -209,10 +209,10 @@ int webclient_post_file(const char* URI, const char* filename,
     length += strlen(boundary) + 8; /* add the last boundary */
 
     /* build header for upload */
-    header_ptr += snprintf(header_ptr,
+    header_ptr += web_snprintf(header_ptr,
             WEBCLIENT_HEADER_BUFSZ - (header_ptr - header),
             "Content-Length: %d\r\n", length);
-    header_ptr += snprintf(header_ptr,
+    header_ptr += web_snprintf(header_ptr,
             WEBCLIENT_HEADER_BUFSZ - (header_ptr - header),
             "Content-Type: multipart/form-data; boundary=%s\r\n", boundary);
 
@@ -248,7 +248,7 @@ int webclient_post_file(const char* URI, const char* filename,
     }
 
     /* send last boundary */
-    snprintf((char*) buffer, WEBCLIENT_RESPONSE_BUFSZ, "\r\n--%s--\r\n", boundary);
+    web_snprintf((char*) buffer, WEBCLIENT_RESPONSE_BUFSZ, "\r\n--%s--\r\n", boundary);
     webclient_write(session, buffer, strlen(boundary) + 8);
 
     extern int webclient_handle_response(struct webclient_session *session);
@@ -263,7 +263,7 @@ int webclient_post_file(const char* URI, const char* filename,
     {
         int bytes_read = 0;
 
-        memset(buffer, 0x00, WEBCLIENT_RESPONSE_BUFSZ);
+        web_memset(buffer, 0x00, WEBCLIENT_RESPONSE_BUFSZ);
         do
         {
             bytes_read = webclient_read(session, buffer,
