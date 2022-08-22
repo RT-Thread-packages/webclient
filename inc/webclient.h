@@ -73,10 +73,6 @@ extern "C" {
 #define web_strdup                      rt_strdup
 #endif
 
-#ifndef web_strndup
-#define web_strndup                     rt_strndup
-#endif
-
 #define WEBCLIENT_SW_VERSION           "2.3.0"
 #define WEBCLIENT_SW_VERSION_NUM       0x20300
 
