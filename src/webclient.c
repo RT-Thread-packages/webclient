@@ -841,7 +841,7 @@ int webclient_handle_response(struct webclient_session *session)
         char *line = rt_malloc(len);
         /* chunk mode, we should get the first chunk size */
         webclient_read_line(session, line, len);
-        session->chunk_sz = strtol(line, RT_NULL, len);
+        session->chunk_sz = strtol(line, RT_NULL, 16);
         session->chunk_offset = 0;
         rt_free(line);
     }
