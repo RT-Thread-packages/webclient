@@ -77,6 +77,7 @@ __exit:
     if (session)
     {
         webclient_close(session);
+        session = RT_NULL;
     }
 
     if (buffer)

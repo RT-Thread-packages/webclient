@@ -132,6 +132,7 @@ __exit:
     if (session)
     {
         webclient_close(session);
+        session = RT_NULL;
     }
 
     return result;

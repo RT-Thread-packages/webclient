@@ -132,6 +132,7 @@ __exit:
     if (session != RT_NULL)
     {
         webclient_close(session);
+        session = RT_NULL;
     }
 
     if (ptr != RT_NULL)
@@ -287,6 +288,7 @@ __exit:
     if (session != RT_NULL)
     {
         webclient_close(session);
+        session = RT_NULL;
     }
 
     if (buffer != RT_NULL)
