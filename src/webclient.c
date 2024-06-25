@@ -1070,14 +1070,16 @@ int webclient_shard_position_function(struct webclient_session *session, const c
     end_position = start;
     total_len = start + length;
 
-    /* clean header buffer and size */
-    web_memset(session->header->buffer, 0x00, session->header->size);
-    session->header->length = 0;
-
-    for(start_position = end_position; total_len != end_position + 1;)
+    for(start_position = end_position; start_position < total_len;)
     {
-        RT_ASSERT(start_position <= total_len);
-        int data_len = 0;
+        if(session->socket == -1)
+        {
+            rc = webclient_connect(session, URI);
+            if (rc != WEBCLIENT_OK)
+            {
+                break;
+            }
+        }
 
         end_position = start_position + mem_size - 1;
         if(end_position >= total_len)
@@ -1085,98 +1087,71 @@ int webclient_shard_position_function(struct webclient_session *session, const c
             end_position = total_len - 1;
         }
 
+        /* clean header buffer and size */;
+        session->header->length = 0;
+        web_memset(session->header->buffer, 0, session->header->size);
+
         /* splice header and send header */
         LOG_D("Range: [%04d -> %04d]", start_position, end_position);
         webclient_header_fields_add(session, "Range: bytes=%d-%d\r\n", start_position, end_position);
         rc = webclient_send_header(session, WEBCLIENT_GET);
         if (rc != WEBCLIENT_OK)
         {
-            return rc;
+            break;
         }
 
         /* handle the response header of webclient server */
         resp_status = webclient_handle_response(session);
         LOG_D("get position handle response(%d).", resp_status);
-        if (resp_status == 206)
+        if (resp_status < 0)
         {
-            /* normal resp_status */
+            webclient_clean(session);
+            continue;
         }
-        else if(resp_status > 0)
+
+        const char *location = webclient_header_fields_get(session, "Location");
+        if ((resp_status == 302 || resp_status == 301) && location)
         {
-            const char *location = webclient_header_fields_get(session, "Location");
+            char *new_url;
 
-            /* relocation */
-            if ((resp_status == 302 || resp_status == 301) && location)
+            new_url = web_strdup(location);
+            if (new_url == RT_NULL)
             {
-                char *new_url;
-
-                new_url = web_strdup(location);
-                if (new_url == RT_NULL)
-                {
-                    return -WEBCLIENT_NOMEM;
-                }
-
-                /* clean webclient session */
-                webclient_clean(session);
-                /* clean webclient session header */
-                session->header->length = 0;
-                web_memset(session->header->buffer, 0, session->header->size);
-
-                rc = webclient_shard_position_function(session, new_url, start, length, mem_size);
-
-                web_free(new_url);
-                return rc;
+                rc = -WEBCLIENT_NOMEM;
+                break;
             }
+
+            /* clean webclient session */
+            webclient_clean(session);
+            rc = webclient_shard_position_function(session, new_url, start, length, mem_size);
+
+            web_free(new_url);
+            break;
         }
-        else
+
+        if (resp_status != 206)
         {
-            if(resp_status == -WEBCLIENT_ERROR)
-            {
-                if(session->socket == -WEBCLIENT_ERROR)
-                {
-                    /* clean webclient session */
-                    webclient_clean(session);
-                    if(webclient_connect(session, URI) == WEBCLIENT_OK)
-                    {
-                        LOG_D("webclient reconnect success, retry at [%06d]", end_position);
-                        end_position = start_position;
-                        continue;
-                    }
-                    else
-                    {
-                        LOG_E("webclient reconnect failed. Please retry by yourself.");
-                        return -WEBCLIENT_ERROR;
-                    }
-                }
-            }
+            continue;
         }
 
         /* receive the incoming data */
-        data_len = webclient_response(session, (void **)&buffer, &resp_len);
-        if(data_len > 0)
+        int data_len = webclient_response(session, (void **)&buffer, &resp_len);
+        if(data_len <= 0)
         {
-            start_position += data_len;
-            result = session->handle_function(buffer, data_len);
-            if(result != RT_EOK)
-            {
-                return -WEBCLIENT_ERROR;
-            }
-        }
-        else
-        {
-            /* clean webclient session */
             webclient_clean(session);
-            if(session->socket == -WEBCLIENT_ERROR)
-            {
-                webclient_connect(session, URI);
-            }
+            continue;
         }
 
-        /* clean header buffer and size */
-        web_memset(session->header->buffer, 0x00, session->header->size);
-        session->header->length = 0;
+        start_position += data_len;
+        result = session->handle_function(buffer, data_len);
+        if(result != RT_EOK)
+        {
+            rc = -WEBCLIENT_ERROR;
+            break;
+        }
     }
 
+    webclient_clean(session);
     return rc;
 }
 
