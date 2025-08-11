@@ -120,7 +120,7 @@ int webclient_get_file(const char* URI, const char* filename)
 
     if (total_length)
     {
-        LOG_D("save %d bytes.", total_length);
+        LOG_I("Download to '%s', size: %d bytes.", filename, total_length);
     }
 
 __exit:

@@ -10,7 +10,8 @@
 
 #include <rtthread.h>
 #include <webclient.h>
-#include "stdlib.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define GET_LOCAL_URI                  "http://www.rt-thread.com/service/rt-thread.txt"
 #define CHARACTER_LENGTH 60

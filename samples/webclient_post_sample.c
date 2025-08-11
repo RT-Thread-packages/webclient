@@ -9,7 +9,6 @@
  */
 
 #include <string.h>
-
 #include <rtthread.h>
 #include <webclient.h>
 

@@ -19,9 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
 #include <webclient.h>
-
 #include <sys/errno.h>
 #include <sys/time.h>
 
@@ -46,8 +44,6 @@
 
 /* default receive or send timeout */
 #define WEBCLIENT_DEFAULT_TIMEO        6
-
-extern long int strtol(const char *nptr, char **endptr, int base);
 
 static int webclient_strncasecmp(const char *a, const char *b, size_t n)
 {
@@ -775,7 +771,7 @@ int webclient_handle_response(struct webclient_session *session)
         mime_buffer = session->header->buffer + session->header->length;
 
         /* read a line from the header information. */
-        rc = webclient_read_line(session, mime_buffer, session->header->size - session->header->length);
+        rc = webclient_read_line(session, mime_buffer, session->header->size - session->header->length - 1);
         if (rc < 0)
             break;
 
@@ -798,7 +794,7 @@ int webclient_handle_response(struct webclient_session *session)
 
         if (session->header->length >= session->header->size)
         {
-            LOG_E("not enough header buffer size(%d)!", session->header->size);
+            LOG_E("L%d: not enough header buffer size(%d)!", __LINE__, session->header->size);
             return -WEBCLIENT_NOMEM;
         }
     }

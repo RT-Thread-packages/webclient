@@ -10,6 +10,7 @@
 
 #include <rtthread.h>
 #include <webclient.h>
+#include <string.h>
 
 #define GET_HEADER_BUFSZ               1024
 #define GET_RESP_BUFSZ                 1024
