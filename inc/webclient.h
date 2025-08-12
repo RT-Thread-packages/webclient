@@ -113,6 +113,7 @@ struct webclient_session
     struct webclient_header *header;    /* webclient response header information */
     int socket;
     int resp_status;
+    struct timeval timeout;
 
     char *host;                         /* server host */
     char *req_url;                      /* HTTP request address*/

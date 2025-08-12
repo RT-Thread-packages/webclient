@@ -384,8 +384,7 @@ static int webclient_connect(struct webclient_session *session, const char *URI)
     RT_ASSERT(session);
     RT_ASSERT(URI);
 
-    timeout.tv_sec = WEBCLIENT_DEFAULT_TIMEO;
-    timeout.tv_usec = 0;
+    timeout = session->timeout;
 
     if (strncmp(URI, "https://", 8) == 0)
     {
@@ -878,6 +877,8 @@ struct webclient_session *webclient_session_create(size_t header_sz)
     /* initialize the socket of session */
     session->socket = -1;
     session->content_length = -1;
+    session->timeout.tv_sec = WEBCLIENT_DEFAULT_TIMEO;
+    session->timeout.tv_usec = 0;
 
     session->header = (struct webclient_header *) web_calloc(1, sizeof(struct webclient_header));
     if (session->header == RT_NULL)
@@ -1216,19 +1217,13 @@ int webclient_post(struct webclient_session *session, const char *URI, const voi
  */
 int webclient_set_timeout(struct webclient_session *session, int millisecond)
 {
-    struct timeval timeout;
-    int second = rt_tick_from_millisecond(millisecond) / 1000;
+    int second = millisecond / 1000;
+    int microsecond = (millisecond % 1000) * 1000;
 
     RT_ASSERT(session);
 
-    timeout.tv_sec = second;
-    timeout.tv_usec = 0;
-
-    /* set recv timeout option */
-    setsockopt(session->socket, SOL_SOCKET, SO_RCVTIMEO,
-               (void *) &timeout, sizeof(timeout));
-    setsockopt(session->socket, SOL_SOCKET, SO_SNDTIMEO,
-               (void *) &timeout, sizeof(timeout));
+    session->timeout.tv_sec = second;
+    session->timeout.tv_usec = microsecond;
 
     return 0;
 }
